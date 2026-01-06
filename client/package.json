@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "npm run build && firebase deploy",
+    "deploy:ci": "npm run build && firebase deploy --token $FIREBASE_TOKEN"
   },
   "dependencies": {
     "playcanvas": "^2.1.0"

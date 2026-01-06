@@ -8,10 +8,12 @@ import type { Asset3DResponse, AssetStyle, AssetCacheEntry, MiddlewareConfig } f
 import { Engine } from '../core/Engine';
 
 const DEFAULT_CONFIG: MiddlewareConfig = {
-  baseUrl: '',  // Empty for same-origin (proxied by Vite)
+  baseUrl: import.meta.env.VITE_API_URL || '',  // Empty for same-origin (proxied by Vite)
   defaultStyle: 'nano-banana',
   timeout: 120000,  // 2 minutes for generation
 };
+
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export class AssetLoader {
   private static instance: AssetLoader | null = null;
@@ -112,6 +114,12 @@ export class AssetLoader {
    * This is the main method to use - handles caching automatically
    */
   async getEntity(keyword: string, style?: AssetStyle): Promise<pc.Entity> {
+    // In demo mode, return a placeholder
+    if (DEMO_MODE) {
+      console.log(`[AssetLoader] Demo mode: creating placeholder for ${keyword}`);
+      return this.createPlaceholderEntity(keyword);
+    }
+
     const useStyle = style || this.config.defaultStyle;
     const cacheKey = this.getCacheKey(keyword, useStyle);
 
@@ -140,6 +148,45 @@ export class AssetLoader {
     } finally {
       this.pendingLoads.delete(cacheKey);
     }
+  }
+
+  /**
+   * Create a placeholder entity for demo mode
+   */
+  private createPlaceholderEntity(keyword: string): pc.Entity {
+    const entity = new pc.Entity(keyword);
+    
+    // Create colorful placeholder based on keyword hash
+    const hash = keyword.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colorIndex = hash % 5;
+    
+    // Predefined vibrant colors
+    const colors = [
+      new pc.Color(1, 0.4, 0.4),    // Red
+      new pc.Color(0.4, 0.8, 0.4),  // Green
+      new pc.Color(0.4, 0.6, 1),    // Blue
+      new pc.Color(1, 0.8, 0.2),    // Yellow
+      new pc.Color(0.8, 0.4, 1),    // Purple
+    ];
+    
+    const material = new pc.StandardMaterial();
+    material.diffuse = colors[colorIndex];
+    material.specular = new pc.Color(1, 1, 1);
+    material.gloss = 0.9;
+    material.metalness = 0.2;
+    material.update();
+
+    entity.addComponent('render', {
+      type: 'sphere',
+      material: material,
+    });
+
+    // Add floating text label (using a child entity)
+    const labelEntity = new pc.Entity('label');
+    labelEntity.setLocalPosition(0, 1.2, 0);
+    entity.addChild(labelEntity);
+
+    return entity;
   }
 
   /**
