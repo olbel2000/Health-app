@@ -162,38 +162,185 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create the floating island
+   * Create the floating island - detailed multi-layer design
    */
   private createIsland(): void {
     this.island = this.engine.createEntity('Island', this.root);
 
-    // Main island platform (top)
+    const grassMat = this.createIslandMaterial();
+    const rockMat = this.createRockMaterial();
+    const dirtMat = this.createDirtMaterial();
+
+    // Main island platform (top) - larger and more organic
     const islandTop = this.engine.createEntity('IslandTop', this.island);
     islandTop.addComponent('render', {
       type: 'cylinder',
-      material: this.createIslandMaterial(),
+      material: grassMat,
     });
-    islandTop.setLocalScale(12, 1, 12);
+    islandTop.setLocalScale(14, 0.8, 14);
     islandTop.setPosition(0, 0, 0);
 
-    // Island bottom (cone shape for floating effect)
+    // Second grass layer for depth
+    const islandTop2 = this.engine.createEntity('IslandTop2', this.island);
+    islandTop2.addComponent('render', {
+      type: 'cylinder',
+      material: grassMat,
+    });
+    islandTop2.setLocalScale(12, 0.5, 12);
+    islandTop2.setPosition(0.5, 0.3, -0.5);
+
+    // Dirt layer
+    const dirtLayer = this.engine.createEntity('DirtLayer', this.island);
+    dirtLayer.addComponent('render', {
+      type: 'cylinder',
+      material: dirtMat,
+    });
+    dirtLayer.setLocalScale(13, 1.5, 13);
+    dirtLayer.setPosition(0, -0.8, 0);
+
+    // Main rock cone
     const islandBottom = this.engine.createEntity('IslandBottom', this.island);
     islandBottom.addComponent('render', {
       type: 'cone',
-      material: this.createRockMaterial(),
+      material: rockMat,
     });
-    islandBottom.setLocalScale(10, 6, 10);
-    islandBottom.setPosition(0, -3.5, 0);
+    islandBottom.setLocalScale(11, 7, 11);
+    islandBottom.setPosition(0, -4, 0);
     islandBottom.setEulerAngles(180, 0, 0);
 
-    // Grass ring on top
-    const grassRing = this.engine.createEntity('GrassRing', this.island);
-    grassRing.addComponent('render', {
-      type: 'torus',
-      material: this.createGrassMaterial(),
+    // Secondary rock formations
+    const rockPositions = [
+      { x: 4, z: 3, scale: 0.6, rot: 15 },
+      { x: -5, z: 2, scale: 0.5, rot: -20 },
+      { x: 3, z: -4, scale: 0.55, rot: 10 },
+      { x: -3, z: -3, scale: 0.45, rot: -15 },
+      { x: 0, z: 5, scale: 0.5, rot: 5 },
+    ];
+
+    rockPositions.forEach((pos, i) => {
+      const rock = this.engine.createEntity(`Rock_${i}`, this.island);
+      rock.addComponent('render', {
+        type: 'cone',
+        material: rockMat,
+      });
+      rock.setLocalScale(3 * pos.scale, 5 * pos.scale, 3 * pos.scale);
+      rock.setPosition(pos.x, -3.5, pos.z);
+      rock.setEulerAngles(180 + pos.rot, i * 30, pos.rot);
     });
-    grassRing.setLocalScale(5, 0.3, 5);
-    grassRing.setPosition(0, 0.5, 0);
+
+    // Grass patches on top
+    this.createGrassPatches();
+
+    // Flowers and small details
+    this.createFlowers();
+
+    // Path/trail on island
+    this.createPath();
+  }
+
+  /**
+   * Create dirt material
+   */
+  private createDirtMaterial(): pc.StandardMaterial {
+    const material = new pc.StandardMaterial();
+    material.diffuse = new pc.Color(0.45, 0.32, 0.22);
+    material.specular = new pc.Color(0.2, 0.15, 0.1);
+    material.gloss = 0.3;
+    material.metalness = 0.0;
+    material.useMetalness = true;
+    material.update();
+    return material;
+  }
+
+  /**
+   * Create grass patches for variety
+   */
+  private createGrassPatches(): void {
+    const grassMat = this.createGrassMaterial();
+    
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const radius = 4 + Math.random() * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const patch = this.engine.createEntity(`GrassPatch_${i}`, this.island);
+      patch.addComponent('render', {
+        type: 'sphere',
+        material: grassMat,
+      });
+      const scale = 0.8 + Math.random() * 0.6;
+      patch.setLocalScale(scale, 0.2, scale);
+      patch.setPosition(x, 0.4, z);
+    }
+  }
+
+  /**
+   * Create decorative flowers
+   */
+  private createFlowers(): void {
+    const flowerColors = [
+      new pc.Color(1, 0.4, 0.5),    // Pink
+      new pc.Color(1, 0.9, 0.3),    // Yellow
+      new pc.Color(0.6, 0.4, 1),    // Purple
+      new pc.Color(1, 0.6, 0.3),    // Orange
+      new pc.Color(0.4, 0.7, 1),    // Blue
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 2 + Math.random() * 4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const flower = this.engine.createEntity(`Flower_${i}`, this.island);
+      
+      const flowerMat = new pc.StandardMaterial();
+      flowerMat.diffuse = flowerColors[i % flowerColors.length];
+      flowerMat.emissive = new pc.Color(
+        flowerColors[i % flowerColors.length].r * 0.2,
+        flowerColors[i % flowerColors.length].g * 0.2,
+        flowerColors[i % flowerColors.length].b * 0.2
+      );
+      flowerMat.gloss = 0.7;
+      flowerMat.update();
+
+      flower.addComponent('render', {
+        type: 'sphere',
+        material: flowerMat,
+      });
+      const scale = 0.15 + Math.random() * 0.15;
+      flower.setLocalScale(scale, scale, scale);
+      flower.setPosition(x, 0.6 + Math.random() * 0.3, z);
+    }
+  }
+
+  /**
+   * Create a winding path on the island
+   */
+  private createPath(): void {
+    const pathMat = new pc.StandardMaterial();
+    pathMat.diffuse = new pc.Color(0.7, 0.6, 0.45);
+    pathMat.specular = new pc.Color(0.3, 0.25, 0.2);
+    pathMat.gloss = 0.4;
+    pathMat.update();
+
+    // Path segments
+    for (let i = 0; i < 8; i++) {
+      const t = i / 8;
+      const angle = t * Math.PI * 1.5;
+      const radius = 1 + t * 2.5;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const pathSeg = this.engine.createEntity(`Path_${i}`, this.island);
+      pathSeg.addComponent('render', {
+        type: 'cylinder',
+        material: pathMat,
+      });
+      pathSeg.setLocalScale(0.6 + t * 0.3, 0.05, 0.6 + t * 0.3);
+      pathSeg.setPosition(x, 0.42, z);
+    }
   }
 
   /**
@@ -391,28 +538,66 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create a simple tree
+   * Create a stylized tree with multiple foliage layers
    */
   private createTree(name: string): pc.Entity {
     const tree = this.engine.createEntity(name, this.root);
+    const trunkMat = this.createTrunkMaterial();
 
-    // Trunk
+    // Trunk - tapered cylinder effect using multiple segments
     const trunk = this.engine.createEntity('Trunk', tree);
     trunk.addComponent('render', {
       type: 'cylinder',
-      material: this.createTrunkMaterial(),
+      material: trunkMat,
     });
-    trunk.setLocalScale(0.3, 2, 0.3);
-    trunk.setPosition(0, 1, 0);
+    trunk.setLocalScale(0.25, 2.2, 0.25);
+    trunk.setPosition(0, 1.1, 0);
 
-    // Foliage (sphere)
-    const foliage = this.engine.createEntity('Foliage', tree);
-    foliage.addComponent('render', {
-      type: 'sphere',
-      material: this.createFoliageMaterial(),
+    // Trunk base (wider)
+    const trunkBase = this.engine.createEntity('TrunkBase', tree);
+    trunkBase.addComponent('render', {
+      type: 'cone',
+      material: trunkMat,
     });
-    foliage.setLocalScale(1.5, 1.5, 1.5);
-    foliage.setPosition(0, 2.5, 0);
+    trunkBase.setLocalScale(0.5, 0.5, 0.5);
+    trunkBase.setPosition(0, 0.15, 0);
+    trunkBase.setEulerAngles(180, 0, 0);
+
+    // Multi-layer foliage for cartoon look
+    const foliageLayers = [
+      { y: 2.8, scale: 1.2, scaleY: 0.9 },
+      { y: 3.3, scale: 1.0, scaleY: 0.8 },
+      { y: 3.7, scale: 0.7, scaleY: 0.6 },
+    ];
+
+    foliageLayers.forEach((layer, i) => {
+      const foliage = this.engine.createEntity(`Foliage_${i}`, tree);
+      
+      foliage.addComponent('render', {
+        type: 'sphere',
+        material: this.createFoliageMaterial(i),
+      });
+      foliage.setLocalScale(layer.scale, layer.scaleY, layer.scale);
+      foliage.setPosition(0, layer.y, 0);
+    });
+
+    // Add some branches
+    const branchMat = trunkMat;
+    const branches = [
+      { x: 0.3, y: 1.5, z: 0.2, rotZ: 30, scale: 0.4 },
+      { x: -0.25, y: 1.8, z: 0.15, rotZ: -25, scale: 0.35 },
+    ];
+
+    branches.forEach((b, i) => {
+      const branch = this.engine.createEntity(`Branch_${i}`, tree);
+      branch.addComponent('render', {
+        type: 'cylinder',
+        material: branchMat,
+      });
+      branch.setLocalScale(0.08, b.scale, 0.08);
+      branch.setPosition(b.x, b.y, b.z);
+      branch.setEulerAngles(0, i * 45, b.rotZ);
+    });
 
     return tree;
   }
@@ -436,9 +621,9 @@ export class IslandScene extends Scene {
   /**
    * Create foliage material - Bouncy cartoon leaves with texture
    */
-  private createFoliageMaterial(): pc.StandardMaterial {
+  private createFoliageMaterial(variation: number = 0): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.25, 0.8, 0.45);
+    material.diffuse = new pc.Color(0.25 + variation * 0.05, 0.8 + variation * 0.05, 0.45);
     material.diffuseMap = this.textureGen.createFoliageTexture();
     material.specular = new pc.Color(0.5, 0.7, 0.5);
     material.gloss = 0.7;
