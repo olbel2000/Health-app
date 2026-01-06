@@ -1,0 +1,14 @@
+# Render.com deployment config
+services:
+  - type: web
+    name: lingo-island-api
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MESHY_API_KEY
+        sync: false  # Set manually in Render dashboard

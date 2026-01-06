@@ -4,6 +4,9 @@
   "description": "Middleware Backend for Lingo Island - AI-powered 3D asset orchestrator",
   "type": "module",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

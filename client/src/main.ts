@@ -85,14 +85,16 @@ class LingoIsland {
       if (data.success) {
         console.log('[Server] Connected:', data);
         
-        if (!data.services.meshyApi) {
+        if (data.services.meshyApi) {
+          this.uiManager.showToast('✨ 3D Generation enabled!', 3000);
+        } else {
           console.warn('[Server] Meshy API not configured - 3D generation disabled');
-          this.uiManager.showToast('Demo mode: 3D generation disabled', 3000);
+          this.uiManager.showToast('Demo mode: 3D as colored orbs', 3000);
         }
       }
-    } catch (error) {
-      console.warn('[Server] Not available - running in offline mode');
-      this.uiManager.showToast('Offline mode', 2000);
+    } catch {
+      console.warn('[Server] Not available - running in demo mode');
+      this.uiManager.showToast('🎮 Demo mode', 2000);
     }
   }
 

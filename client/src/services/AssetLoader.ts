@@ -10,10 +10,26 @@ import { Engine } from '../core/Engine';
 const DEFAULT_CONFIG: MiddlewareConfig = {
   baseUrl: import.meta.env.VITE_API_URL || '',  // Empty for same-origin (proxied by Vite)
   defaultStyle: 'nano-banana',
-  timeout: 120000,  // 2 minutes for generation
+  timeout: 180000,  // 3 minutes for generation (Meshy can take a while)
 };
 
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+// Check if API is available
+let API_AVAILABLE = false;
+let DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+// Try to detect API availability
+async function checkApiAvailability(baseUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${baseUrl}/api/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000) 
+    });
+    const data = await response.json();
+    return data.success && data.services?.meshyApi === true;
+  } catch {
+    return false;
+  }
+}
 
 export class AssetLoader {
   private static instance: AssetLoader | null = null;
@@ -24,6 +40,24 @@ export class AssetLoader {
 
   private constructor(config: Partial<MiddlewareConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    
+    // Check API availability on init
+    this.initApiCheck();
+  }
+
+  /**
+   * Check if the API is available
+   */
+  private async initApiCheck(): Promise<void> {
+    if (!DEMO_MODE) {
+      API_AVAILABLE = await checkApiAvailability(this.config.baseUrl);
+      if (!API_AVAILABLE) {
+        console.log('[AssetLoader] API not available, running in demo mode');
+        DEMO_MODE = true;
+      } else {
+        console.log('[AssetLoader] API available, 3D generation enabled');
+      }
+    }
   }
 
   /**
@@ -151,7 +185,8 @@ export class AssetLoader {
   }
 
   /**
-   * Create a placeholder entity for demo mode
+   * Create a beautiful placeholder entity for demo mode
+   * Styled as a magical floating word orb
    */
   private createPlaceholderEntity(keyword: string): pc.Entity {
     const entity = new pc.Entity(keyword);
@@ -160,20 +195,25 @@ export class AssetLoader {
     const hash = keyword.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const colorIndex = hash % 5;
     
-    // Predefined vibrant colors
-    const colors = [
-      new pc.Color(1, 0.4, 0.4),    // Red
-      new pc.Color(0.4, 0.8, 0.4),  // Green
-      new pc.Color(0.4, 0.6, 1),    // Blue
-      new pc.Color(1, 0.8, 0.2),    // Yellow
-      new pc.Color(0.8, 0.4, 1),    // Purple
+    // Predefined vibrant colors matching Nano Banana aesthetic
+    const colorConfigs = [
+      { diffuse: new pc.Color(1, 0.35, 0.4), emissive: new pc.Color(0.3, 0.08, 0.1) },    // Ruby
+      { diffuse: new pc.Color(0.35, 0.85, 0.45), emissive: new pc.Color(0.08, 0.25, 0.1) }, // Emerald
+      { diffuse: new pc.Color(0.35, 0.55, 1), emissive: new pc.Color(0.08, 0.12, 0.3) },   // Sapphire
+      { diffuse: new pc.Color(1, 0.85, 0.25), emissive: new pc.Color(0.3, 0.22, 0.05) },   // Gold
+      { diffuse: new pc.Color(0.85, 0.4, 1), emissive: new pc.Color(0.22, 0.1, 0.3) },     // Amethyst
     ];
     
+    const config = colorConfigs[colorIndex];
+    
+    // Main orb
     const material = new pc.StandardMaterial();
-    material.diffuse = colors[colorIndex];
+    material.diffuse = config.diffuse;
+    material.emissive = config.emissive;
     material.specular = new pc.Color(1, 1, 1);
-    material.gloss = 0.9;
-    material.metalness = 0.2;
+    material.gloss = 0.95;
+    material.metalness = 0.3;
+    material.useMetalness = true;
     material.update();
 
     entity.addComponent('render', {
@@ -181,12 +221,48 @@ export class AssetLoader {
       material: material,
     });
 
-    // Add floating text label (using a child entity)
-    const labelEntity = new pc.Entity('label');
-    labelEntity.setLocalPosition(0, 1.2, 0);
-    entity.addChild(labelEntity);
+    // Inner glow effect
+    const glowEntity = new pc.Entity('glow');
+    const glowMat = new pc.StandardMaterial();
+    glowMat.diffuse = config.diffuse;
+    glowMat.emissive = config.diffuse;
+    glowMat.emissiveIntensity = 0.5;
+    glowMat.opacity = 0.3;
+    glowMat.blendType = pc.BLEND_ADDITIVE;
+    glowMat.update();
+    
+    glowEntity.addComponent('render', {
+      type: 'sphere',
+      material: glowMat,
+    });
+    glowEntity.setLocalScale(1.3, 1.3, 1.3);
+    entity.addChild(glowEntity);
+
+    // Floating ring
+    const ringEntity = new pc.Entity('ring');
+    const ringMat = new pc.StandardMaterial();
+    ringMat.diffuse = new pc.Color(1, 1, 1);
+    ringMat.emissive = config.emissive;
+    ringMat.opacity = 0.5;
+    ringMat.gloss = 0.9;
+    ringMat.update();
+    
+    ringEntity.addComponent('render', {
+      type: 'torus',
+      material: ringMat,
+    });
+    ringEntity.setLocalScale(0.8, 0.8, 0.1);
+    ringEntity.setLocalEulerAngles(90, 0, 0);
+    entity.addChild(ringEntity);
 
     return entity;
+  }
+
+  /**
+   * Check if API is available for 3D generation
+   */
+  isApiAvailable(): boolean {
+    return API_AVAILABLE && !DEMO_MODE;
   }
 
   /**
