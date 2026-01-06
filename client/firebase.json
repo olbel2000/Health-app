@@ -1,6 +1,5 @@
 {
   "hosting": {
-    "site": "lingo-iland",
     "public": "dist",
     "ignore": [
       "firebase.json",
