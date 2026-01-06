@@ -6,6 +6,7 @@
 
 import * as pc from 'playcanvas';
 import { Scene } from '../core/SceneManager';
+import { TextureGenerator } from '../services/TextureGenerator';
 import type { CharacterType, CollectibleConfig } from '../types';
 
 export class IslandScene extends Scene {
@@ -15,6 +16,7 @@ export class IslandScene extends Scene {
   private water!: pc.Entity;
   private character: pc.Entity | null = null;
   private collectibles: pc.Entity[] = [];
+  private textureGen!: TextureGenerator;
   
   // Camera orbit
   private cameraAngle: number = 0;
@@ -27,6 +29,9 @@ export class IslandScene extends Scene {
   }
 
   async onEnter(): Promise<void> {
+    // Initialize texture generator
+    this.textureGen = TextureGenerator.getInstance();
+
     // Setup environment
     this.setupSkybox();
     this.setupLighting();
@@ -192,11 +197,13 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create island ground material - Lush green with subtle gloss
+   * Create island ground material - Lush green with texture
    */
   private createIslandMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.25, 0.65, 0.3);
+    material.diffuse = new pc.Color(0.35, 0.75, 0.4);
+    material.diffuseMap = this.textureGen.createGrassTexture();
+    material.diffuseMapTiling = new pc.Vec2(3, 3);
     material.specular = new pc.Color(0.3, 0.4, 0.3);
     material.gloss = 0.5;
     material.metalness = 0.0;
@@ -206,11 +213,13 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create rock material - Stylized purple/blue rocks
+   * Create rock material - Stylized purple/blue rocks with texture
    */
   private createRockMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.4, 0.35, 0.5);
+    material.diffuse = new pc.Color(0.5, 0.45, 0.6);
+    material.diffuseMap = this.textureGen.createRockTexture();
+    material.diffuseMapTiling = new pc.Vec2(2, 2);
     material.specular = new pc.Color(0.5, 0.4, 0.6);
     material.gloss = 0.6;
     material.metalness = 0.1;
@@ -220,11 +229,13 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create grass material - Vibrant cartoon grass
+   * Create grass material - Vibrant cartoon grass with texture
    */
   private createGrassMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.2, 0.75, 0.35);
+    material.diffuse = new pc.Color(0.3, 0.85, 0.45);
+    material.diffuseMap = this.textureGen.createGrassTexture();
+    material.diffuseMapTiling = new pc.Vec2(4, 4);
     material.specular = new pc.Color(0.4, 0.6, 0.4);
     material.gloss = 0.65;
     material.metalness = 0.0;
@@ -247,11 +258,13 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create stylized water material - Magical glowing water
+   * Create stylized water material - Magical glowing water with texture
    */
   private createWaterMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.15, 0.4, 0.7);
+    material.diffuse = new pc.Color(0.2, 0.5, 0.8);
+    material.diffuseMap = this.textureGen.createWaterTexture();
+    material.diffuseMapTiling = new pc.Vec2(8, 8);
     material.specular = new pc.Color(1.0, 1.0, 1.0);
     material.emissive = new pc.Color(0.05, 0.15, 0.3);
     material.gloss = 0.95;
@@ -304,20 +317,24 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create decorative crystals
+   * Create decorative crystals with textures
    */
   private createCrystals(): void {
     const crystalPositions = [
-      { x: -5, z: 0, color: new pc.Color(0.4, 0.8, 1) },
-      { x: 5, z: -2, color: new pc.Color(1, 0.5, 0.8) },
-      { x: 0, z: 5, color: new pc.Color(0.6, 1, 0.7) },
+      { x: -5, z: 0, color: new pc.Color(0.4, 0.8, 1), hue: 200 },
+      { x: 5, z: -2, color: new pc.Color(1, 0.5, 0.8), hue: 320 },
+      { x: 0, z: 5, color: new pc.Color(0.6, 1, 0.7), hue: 140 },
+      { x: -3, z: 4.5, color: new pc.Color(1, 0.8, 0.3), hue: 45 },
+      { x: 4, z: 3, color: new pc.Color(0.8, 0.4, 1), hue: 280 },
     ];
 
     crystalPositions.forEach((pos, i) => {
+      // Main crystal
       const crystal = this.engine.createEntity(`Crystal_${i}`, this.root);
       
       const material = new pc.StandardMaterial();
       material.diffuse = pos.color;
+      material.diffuseMap = this.textureGen.createCrystalTexture(pos.hue);
       material.emissive = new pc.Color(pos.color.r * 0.3, pos.color.g * 0.3, pos.color.b * 0.3);
       material.specular = new pc.Color(1, 1, 1);
       material.gloss = 0.98;
@@ -332,7 +349,20 @@ export class IslandScene extends Scene {
         material: material,
       });
       crystal.setPosition(pos.x, 0.3, pos.z);
-      crystal.setLocalScale(0.4, 1.2, 0.4);
+      const scale = 0.3 + Math.random() * 0.3;
+      crystal.setLocalScale(scale, 0.8 + Math.random() * 0.8, scale);
+
+      // Add smaller crystal beside it
+      if (i < 3) {
+        const smallCrystal = this.engine.createEntity(`SmallCrystal_${i}`, this.root);
+        smallCrystal.addComponent('render', {
+          type: 'cone',
+          material: material,
+        });
+        smallCrystal.setPosition(pos.x + 0.4, 0.2, pos.z + 0.3);
+        smallCrystal.setLocalScale(scale * 0.5, scale * 1.5, scale * 0.5);
+        smallCrystal.setEulerAngles(0, 0, 15);
+      }
     });
   }
 
@@ -388,11 +418,13 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create trunk material - Stylized brown with warm tones
+   * Create trunk material - Stylized brown with bark texture
    */
   private createTrunkMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.55, 0.35, 0.25);
+    material.diffuse = new pc.Color(0.6, 0.4, 0.3);
+    material.diffuseMap = this.textureGen.createBarkTexture();
+    material.diffuseMapTiling = new pc.Vec2(1, 2);
     material.specular = new pc.Color(0.4, 0.3, 0.25);
     material.gloss = 0.45;
     material.metalness = 0.0;
@@ -402,11 +434,12 @@ export class IslandScene extends Scene {
   }
 
   /**
-   * Create foliage material - Bouncy cartoon leaves
+   * Create foliage material - Bouncy cartoon leaves with texture
    */
   private createFoliageMaterial(): pc.StandardMaterial {
     const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.15, 0.7, 0.35);
+    material.diffuse = new pc.Color(0.25, 0.8, 0.45);
+    material.diffuseMap = this.textureGen.createFoliageTexture();
     material.specular = new pc.Color(0.5, 0.7, 0.5);
     material.gloss = 0.7;
     material.metalness = 0.0;
