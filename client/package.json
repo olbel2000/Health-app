@@ -1,0 +1,20 @@
+{
+  "name": "lingo-island-client",
+  "version": "1.0.0",
+  "description": "Lingo Island - Educational 3D Language Learning Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "playcanvas": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

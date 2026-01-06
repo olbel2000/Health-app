@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4ECDC4" />
+  <title>🏝️ Lingo Island - Learn Languages with Magic!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    /* PlayCanvas Canvas */
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Loading Screen */
+    #loading-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease-out;
+    }
+
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-title {
+      font-size: 3rem;
+      font-weight: 800;
+      color: white;
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+      margin-bottom: 1rem;
+    }
+
+    .loading-subtitle {
+      font-size: 1.2rem;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 2rem;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-progress {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* Game UI Overlay */
+    #game-ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #game-ui > * {
+      pointer-events: auto;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+    }
+
+    .score-display {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .score-icon {
+      font-size: 1.5rem;
+    }
+
+    /* Word Display */
+    .word-display {
+      position: absolute;
+      bottom: 8rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 1rem 2rem;
+      border-radius: 2rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center;
+      min-width: 200px;
+    }
+
+    .word-display .word {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .word-display .hint {
+      font-size: 0.9rem;
+      color: #888;
+      margin-top: 0.3rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1rem;
+    }
+
+    .action-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 2rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+
+    .action-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+
+    .action-btn.mic {
+      background: linear-gradient(135deg, #FF6B6B, #EE5A5A);
+      color: white;
+    }
+
+    .action-btn.hint {
+      background: linear-gradient(135deg, #4ECDC4, #44A08D);
+      color: white;
+    }
+
+    .action-btn.skip {
+      background: linear-gradient(135deg, #A8A8A8, #888);
+      color: white;
+    }
+
+    /* Character Selection */
+    .character-select {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 2rem;
+      border-radius: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      display: none;
+    }
+
+    .character-select.active {
+      display: block;
+    }
+
+    .character-select h2 {
+      font-size: 1.5rem;
+      color: #333;
+      margin-bottom: 1.5rem;
+    }
+
+    .character-options {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .character-card {
+      width: 150px;
+      padding: 1.5rem;
+      border-radius: 1.5rem;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: #f5f5f5;
+    }
+
+    .character-card:hover {
+      transform: translateY(-5px);
+      border-color: #4ECDC4;
+    }
+
+    .character-card .avatar {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+
+    .character-card.ladybug .avatar {
+      background: linear-gradient(135deg, #FF6B6B, #EE5A5A);
+    }
+
+    .character-card.harry .avatar {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .character-card .name {
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 0.3rem;
+    }
+
+    .character-card .role {
+      font-size: 0.8rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- PlayCanvas Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <div class="loading-title">🏝️ Lingo Island</div>
+      <div class="loading-subtitle">Preparing your magical adventure...</div>
+      <div class="loading-spinner"></div>
+      <div class="loading-progress">Loading assets...</div>
+    </div>
+
+    <!-- Game UI Overlay -->
+    <div id="game-ui" style="display: none;">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="score-display">
+          <span class="score-icon">⭐</span>
+          <span id="score-value">0</span>
+        </div>
+        <div class="score-display">
+          <span class="score-icon">🔥</span>
+          <span id="streak-value">0</span>
+        </div>
+      </div>
+
+      <!-- Word Display -->
+      <div class="word-display" id="word-display" style="display: none;">
+        <div class="word" id="current-word">APPLE</div>
+        <div class="hint" id="current-hint">A red fruit</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="action-btn hint" id="btn-hint" title="Get Hint">💡</button>
+        <button class="action-btn mic" id="btn-mic" title="Speak">🎤</button>
+        <button class="action-btn skip" id="btn-skip" title="Skip">⏭️</button>
+      </div>
+
+      <!-- Character Selection Modal -->
+      <div class="character-select" id="character-select">
+        <h2>Choose Your Character!</h2>
+        <div class="character-options">
+          <div class="character-card ladybug" data-character="ladybug">
+            <div class="avatar">🐞</div>
+            <div class="name">Nano Ladybug</div>
+            <div class="role">Speed Runner</div>
+          </div>
+          <div class="character-card harry" data-character="harry">
+            <div class="avatar">🧙</div>
+            <div class="name">Nano Harry</div>
+            <div class="role">Magic Tracer</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
