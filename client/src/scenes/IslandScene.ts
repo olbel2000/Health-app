@@ -7,6 +7,7 @@
 import * as pc from 'playcanvas';
 import { Scene } from '../core/SceneManager';
 import { TextureGenerator } from '../services/TextureGenerator';
+import { TreeGenerator, TreeStyle } from '../entities/TreeGenerator';
 import type { CharacterType, CollectibleConfig } from '../types';
 
 export class IslandScene extends Scene {
@@ -17,6 +18,7 @@ export class IslandScene extends Scene {
   private character: pc.Entity | null = null;
   private collectibles: pc.Entity[] = [];
   private textureGen!: TextureGenerator;
+  private treeGen!: TreeGenerator;
   
   // Camera orbit
   private cameraAngle: number = 0;
@@ -29,8 +31,9 @@ export class IslandScene extends Scene {
   }
 
   async onEnter(): Promise<void> {
-    // Initialize texture generator
+    // Initialize generators
     this.textureGen = TextureGenerator.getInstance();
+    this.treeGen = new TreeGenerator();
 
     // Setup environment
     this.setupSkybox();
@@ -437,20 +440,23 @@ export class IslandScene extends Scene {
    * Create decorative elements
    */
   private createDecorations(): void {
-    // Create placeholder trees - more variety
-    const treePositions = [
-      { x: 3.5, z: 3, scale: 1.0 },
-      { x: -4, z: 2.5, scale: 1.2 },
-      { x: 2.5, z: -4, scale: 0.9 },
-      { x: -3.5, z: -3.5, scale: 1.1 },
-      { x: 4.5, z: -1, scale: 0.85 },
-      { x: -4.5, z: -1.5, scale: 0.95 },
+    // Create variety of beautiful trees
+    const treeConfigs: Array<{ x: number; z: number; scale: number; style: TreeStyle }> = [
+      { x: 3.5, z: 3, scale: 0.9, style: 'round' },
+      { x: -4, z: 2.5, scale: 1.0, style: 'pine' },
+      { x: 2.5, z: -4, scale: 0.85, style: 'palm' },
+      { x: -3.5, z: -3.5, scale: 0.95, style: 'round' },
+      { x: 4.5, z: -1, scale: 0.8, style: 'willow' },
+      { x: -4.5, z: -1.5, scale: 0.75, style: 'mushroom' },
+      { x: 0, z: 4.5, scale: 0.85, style: 'pine' },
+      { x: -2, z: -5, scale: 0.7, style: 'mushroom' },
     ];
 
-    treePositions.forEach((pos, i) => {
-      const tree = this.createTree(`Tree_${i}`);
-      tree.setPosition(pos.x, 0.5, pos.z);
-      tree.setLocalScale(pos.scale, pos.scale * (0.9 + Math.random() * 0.3), pos.scale);
+    treeConfigs.forEach((config, i) => {
+      const tree = this.treeGen.createTree(config.style, this.root);
+      tree.name = `Tree_${i}_${config.style}`;
+      tree.setPosition(config.x, 0.4, config.z);
+      tree.setLocalScale(config.scale, config.scale, config.scale);
     });
 
     // Add decorative crystals
@@ -535,102 +541,6 @@ export class IslandScene extends Scene {
       ring.setLocalScale(8 + i * 2, 8 + i * 2, 0.1);
       ring.setEulerAngles(90, 0, 0);
     }
-  }
-
-  /**
-   * Create a stylized tree with multiple foliage layers
-   */
-  private createTree(name: string): pc.Entity {
-    const tree = this.engine.createEntity(name, this.root);
-    const trunkMat = this.createTrunkMaterial();
-
-    // Trunk - tapered cylinder effect using multiple segments
-    const trunk = this.engine.createEntity('Trunk', tree);
-    trunk.addComponent('render', {
-      type: 'cylinder',
-      material: trunkMat,
-    });
-    trunk.setLocalScale(0.25, 2.2, 0.25);
-    trunk.setPosition(0, 1.1, 0);
-
-    // Trunk base (wider)
-    const trunkBase = this.engine.createEntity('TrunkBase', tree);
-    trunkBase.addComponent('render', {
-      type: 'cone',
-      material: trunkMat,
-    });
-    trunkBase.setLocalScale(0.5, 0.5, 0.5);
-    trunkBase.setPosition(0, 0.15, 0);
-    trunkBase.setEulerAngles(180, 0, 0);
-
-    // Multi-layer foliage for cartoon look
-    const foliageLayers = [
-      { y: 2.8, scale: 1.2, scaleY: 0.9 },
-      { y: 3.3, scale: 1.0, scaleY: 0.8 },
-      { y: 3.7, scale: 0.7, scaleY: 0.6 },
-    ];
-
-    foliageLayers.forEach((layer, i) => {
-      const foliage = this.engine.createEntity(`Foliage_${i}`, tree);
-      
-      foliage.addComponent('render', {
-        type: 'sphere',
-        material: this.createFoliageMaterial(i),
-      });
-      foliage.setLocalScale(layer.scale, layer.scaleY, layer.scale);
-      foliage.setPosition(0, layer.y, 0);
-    });
-
-    // Add some branches
-    const branchMat = trunkMat;
-    const branches = [
-      { x: 0.3, y: 1.5, z: 0.2, rotZ: 30, scale: 0.4 },
-      { x: -0.25, y: 1.8, z: 0.15, rotZ: -25, scale: 0.35 },
-    ];
-
-    branches.forEach((b, i) => {
-      const branch = this.engine.createEntity(`Branch_${i}`, tree);
-      branch.addComponent('render', {
-        type: 'cylinder',
-        material: branchMat,
-      });
-      branch.setLocalScale(0.08, b.scale, 0.08);
-      branch.setPosition(b.x, b.y, b.z);
-      branch.setEulerAngles(0, i * 45, b.rotZ);
-    });
-
-    return tree;
-  }
-
-  /**
-   * Create trunk material - Stylized brown with bark texture
-   */
-  private createTrunkMaterial(): pc.StandardMaterial {
-    const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.6, 0.4, 0.3);
-    material.diffuseMap = this.textureGen.createBarkTexture();
-    material.diffuseMapTiling = new pc.Vec2(1, 2);
-    material.specular = new pc.Color(0.4, 0.3, 0.25);
-    material.gloss = 0.45;
-    material.metalness = 0.0;
-    material.useMetalness = true;
-    material.update();
-    return material;
-  }
-
-  /**
-   * Create foliage material - Bouncy cartoon leaves with texture
-   */
-  private createFoliageMaterial(variation: number = 0): pc.StandardMaterial {
-    const material = new pc.StandardMaterial();
-    material.diffuse = new pc.Color(0.25 + variation * 0.05, 0.8 + variation * 0.05, 0.45);
-    material.diffuseMap = this.textureGen.createFoliageTexture();
-    material.specular = new pc.Color(0.5, 0.7, 0.5);
-    material.gloss = 0.7;
-    material.metalness = 0.0;
-    material.useMetalness = true;
-    material.update();
-    return material;
   }
 
   /**
