@@ -18,9 +18,16 @@ import { STYLE_CONFIGS } from '../types/index.js';
 
 const router = Router();
 
-// Initialize services
+// Initialize services (lazy init for MeshyService to ensure env vars are loaded)
 const db = DatabaseService.getInstance();
-const meshy = new MeshyService();
+let meshyInstance: MeshyService | null = null;
+
+function getMeshyService(): MeshyService {
+  if (!meshyInstance) {
+    meshyInstance = new MeshyService();
+  }
+  return meshyInstance;
+}
 
 /**
  * POST /api/get-3d-model
@@ -97,6 +104,7 @@ router.post('/get-3d-model', async (
     }
 
     // Step 2: Cache miss - check if Meshy is configured
+    const meshy = getMeshyService();
     if (!meshy.isConfigured()) {
       res.status(503).json({
         success: false,
@@ -214,6 +222,7 @@ router.get('/styles', (_req: Request, res: Response) => {
  * Health check endpoint
  */
 router.get('/health', (_req: Request, res: Response) => {
+  const meshy = getMeshyService();
   res.json({
     success: true,
     status: 'healthy',
