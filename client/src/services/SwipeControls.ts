@@ -31,6 +31,39 @@ export class SwipeControls {
     this.boundHandleKeyDown = this.handleKeyDown.bind(this);
     
     this.addListeners();
+    this.setupControlButtons();
+  }
+
+  /**
+   * Setup on-screen control buttons
+   */
+  private setupControlButtons(): void {
+    const leftBtn = document.getElementById('btn-left');
+    const rightBtn = document.getElementById('btn-right');
+    const jumpBtn = document.getElementById('btn-jump');
+    const slideBtn = document.getElementById('btn-slide');
+
+    // Helper to handle both touch and click
+    const addButtonHandler = (btn: HTMLElement | null, direction: SwipeDirection) => {
+      if (!btn) return;
+      
+      // Touch events
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.emitSwipe(direction);
+      }, { passive: false });
+      
+      // Mouse events
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        this.emitSwipe(direction);
+      });
+    };
+
+    addButtonHandler(leftBtn, 'left');
+    addButtonHandler(rightBtn, 'right');
+    addButtonHandler(jumpBtn, 'up');
+    addButtonHandler(slideBtn, 'down');
   }
 
   /**
