@@ -8,11 +8,14 @@ import { SceneManager } from './core/SceneManager';
 import { AssetLoader } from './services/AssetLoader';
 import { UIManager } from './ui/UIManager';
 import { IslandScene } from './scenes/IslandScene';
+import { WordNinjaScene } from './scenes/WordNinjaScene';
 import type { CharacterType } from './types';
 
 // ============================================
 // Game Configuration
 // ============================================
+
+type GameMode = 'explore' | 'ninja';
 
 // Words with procedural 3D models available
 const INITIAL_WORDS = [
@@ -33,6 +36,8 @@ class LingoIsland {
   
   private currentWordIndex: number = 0;
   private hintTier: number = 0;
+  private currentMode: GameMode = 'explore';
+  private wordNinjaScene: WordNinjaScene | null = null;
 
   async initialize(): Promise<void> {
     console.log('🏝️ Lingo Island initializing...');
@@ -59,6 +64,10 @@ class LingoIsland {
     this.engine.setLoadingProgress('Creating world...');
     const islandScene = new IslandScene();
     this.sceneManager.register(islandScene);
+    
+    // Create Word Ninja scene
+    this.wordNinjaScene = new WordNinjaScene();
+    this.sceneManager.register(this.wordNinjaScene);
 
     // Check server connection
     this.engine.setLoadingProgress('Connecting to server...');
@@ -71,12 +80,133 @@ class LingoIsland {
     // Ready!
     this.engine.setLoadingProgress('Ready!');
     
-    // Transition to character select
+    // Setup game mode selection
+    this.setupModeSelection();
+    
+    // Transition to mode select (after character select)
     setTimeout(() => {
       this.engine.state = 'character-select';
     }, 500);
 
     console.log('🏝️ Lingo Island ready!');
+  }
+
+  /**
+   * Setup game mode selection
+   */
+  private setupModeSelection(): void {
+    const modeSelect = document.getElementById('mode-select');
+    const modeCards = document.querySelectorAll('.mode-card');
+    
+    modeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const mode = card.getAttribute('data-mode') as GameMode;
+        this.onModeSelected(mode);
+        modeSelect?.classList.remove('active');
+      });
+    });
+    
+    // Game over events
+    window.addEventListener('wordninja:gameover', ((e: CustomEvent) => {
+      this.showGameOver(e.detail.score);
+    }) as EventListener);
+    
+    // Play again button
+    document.getElementById('btn-play-again')?.addEventListener('click', () => {
+      document.getElementById('game-over')!.style.display = 'none';
+      if (this.currentMode === 'ninja' && this.wordNinjaScene) {
+        const word = INITIAL_WORDS[Math.floor(Math.random() * INITIAL_WORDS.length)];
+        this.wordNinjaScene.startGame(word);
+      }
+    });
+    
+    // Back to menu button
+    document.getElementById('btn-menu')?.addEventListener('click', () => {
+      document.getElementById('game-over')!.style.display = 'none';
+      this.showModeSelect();
+    });
+  }
+
+  /**
+   * Show mode selection
+   */
+  private showModeSelect(): void {
+    // Hide other UIs
+    document.getElementById('word-display')!.style.display = 'none';
+    document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
+    document.getElementById('ninja-ui')!.style.display = 'none';
+    
+    // Show mode select
+    document.getElementById('mode-select')?.classList.add('active');
+    
+    // Switch to island scene for background
+    this.sceneManager.switchTo('island');
+  }
+
+  /**
+   * Handle mode selection
+   */
+  private async onModeSelected(mode: GameMode): Promise<void> {
+    console.log(`[Game] Mode selected: ${mode}`);
+    this.currentMode = mode;
+    
+    if (mode === 'ninja') {
+      await this.startWordNinja();
+    } else {
+      await this.startExploreMode();
+    }
+  }
+
+  /**
+   * Start Word Ninja mode
+   */
+  private async startWordNinja(): Promise<void> {
+    console.log('[Game] Starting Word Ninja mode...');
+    
+    // Switch to Word Ninja scene
+    await this.sceneManager.switchTo('word-ninja');
+    
+    // Hide explore UI, show ninja UI
+    document.getElementById('word-display')!.style.display = 'none';
+    document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
+    document.getElementById('ninja-ui')!.style.display = 'block';
+    
+    // Start with a random word
+    const word = INITIAL_WORDS[Math.floor(Math.random() * INITIAL_WORDS.length)];
+    
+    if (this.wordNinjaScene) {
+      this.wordNinjaScene.startGame(word);
+    }
+    
+    this.engine.state = 'playing';
+  }
+
+  /**
+   * Start explore mode
+   */
+  private async startExploreMode(): Promise<void> {
+    console.log('[Game] Starting Explore mode...');
+    
+    // Switch to island scene
+    await this.sceneManager.switchTo('island');
+    
+    // Show explore UI, hide ninja UI
+    document.getElementById('ninja-ui')!.style.display = 'none';
+    document.querySelector('.action-buttons')?.setAttribute('style', '');
+    
+    // Start game with first word
+    this.showCurrentWord();
+    
+    this.engine.state = 'playing';
+  }
+
+  /**
+   * Show game over screen
+   */
+  private showGameOver(score: number): void {
+    document.getElementById('ninja-ui')!.style.display = 'none';
+    document.getElementById('final-score')!.textContent = String(score);
+    document.getElementById('game-over')!.style.display = 'flex';
   }
 
   /**
@@ -136,10 +266,15 @@ class LingoIsland {
     
     this.engine.selectCharacter(character);
     this.uiManager.hideCharacterSelect();
-    this.engine.state = 'playing';
     
-    // Start game with first word
-    this.showCurrentWord();
+    // Show mode selection for Ladybug (ninja mode available)
+    if (character === 'ladybug') {
+      this.showModeSelect();
+    } else {
+      // Harry goes directly to explore mode
+      this.currentMode = 'explore';
+      this.startExploreMode();
+    }
   }
 
   /**
