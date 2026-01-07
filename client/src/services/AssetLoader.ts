@@ -1,11 +1,13 @@
 /**
  * Asset Loader Service
  * Handles communication with middleware and PlayCanvas asset loading
+ * Now with beautiful procedural 3D model generation!
  */
 
 import * as pc from 'playcanvas';
 import type { Asset3DResponse, AssetStyle, AssetCacheEntry, MiddlewareConfig } from '../types';
 import { Engine } from '../core/Engine';
+import { WordModelGenerator } from '../entities/WordModelGenerator';
 
 const DEFAULT_CONFIG: MiddlewareConfig = {
   baseUrl: import.meta.env.VITE_API_URL || '',  // Empty for same-origin (proxied by Vite)
@@ -38,12 +40,23 @@ export class AssetLoader {
   private config: MiddlewareConfig;
   private cache: Map<string, AssetCacheEntry> = new Map();
   private pendingLoads: Map<string, Promise<pc.Entity>> = new Map();
+  private wordModelGenerator: WordModelGenerator | null = null;
 
   private constructor(config: Partial<MiddlewareConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     
     // Check API availability on init
     this.initApiCheck();
+  }
+
+  /**
+   * Get WordModelGenerator (lazy init)
+   */
+  private getWordModelGenerator(): WordModelGenerator {
+    if (!this.wordModelGenerator) {
+      this.wordModelGenerator = new WordModelGenerator();
+    }
+    return this.wordModelGenerator;
   }
 
   /**
@@ -186,10 +199,89 @@ export class AssetLoader {
   }
 
   /**
-   * Create a beautiful placeholder entity for demo mode
-   * Styled as a magical floating word orb
+   * Create a beautiful 3D entity for demo mode
+   * Uses WordModelGenerator for known words, falls back to magical orb
    */
   private createPlaceholderEntity(keyword: string): pc.Entity {
+    const generator = this.getWordModelGenerator();
+    
+    // Try to get a procedural model first
+    if (generator.hasModel(keyword)) {
+      console.log(`[AssetLoader] Using procedural 3D model for: ${keyword}`);
+      const model = generator.getModel(keyword);
+      if (model) {
+        // Add floating animation container
+        const container = new pc.Entity(keyword);
+        container.addChild(model);
+        
+        // Add magical glow around the model
+        this.addMagicalGlow(container, keyword);
+        
+        return container;
+      }
+    }
+    
+    console.log(`[AssetLoader] Creating placeholder orb for: ${keyword}`);
+    return this.createMagicalOrb(keyword);
+  }
+
+  /**
+   * Add magical glow effect to a model
+   */
+  private addMagicalGlow(entity: pc.Entity, keyword: string): void {
+    const hash = keyword.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colorIndex = hash % 5;
+    
+    const colors = [
+      new pc.Color(1, 0.35, 0.4),     // Ruby
+      new pc.Color(0.35, 0.85, 0.45), // Emerald
+      new pc.Color(0.35, 0.55, 1),    // Sapphire
+      new pc.Color(1, 0.85, 0.25),    // Gold
+      new pc.Color(0.85, 0.4, 1),     // Amethyst
+    ];
+    
+    const color = colors[colorIndex];
+    
+    // Add glowing particles around the model
+    const glowMat = new pc.StandardMaterial();
+    glowMat.diffuse = color;
+    glowMat.emissive = new pc.Color(color.r * 0.5, color.g * 0.5, color.b * 0.5);
+    glowMat.opacity = 0.3;
+    glowMat.blendType = pc.BLEND_ADDITIVE;
+    glowMat.update();
+
+    // Add small floating orbs around the model
+    for (let i = 0; i < 4; i++) {
+      const orb = new pc.Entity(`glow_${i}`);
+      orb.addComponent('render', { type: 'sphere', material: glowMat });
+      
+      const angle = (i / 4) * Math.PI * 2;
+      orb.setLocalPosition(Math.cos(angle) * 0.7, 0.3, Math.sin(angle) * 0.7);
+      orb.setLocalScale(0.1, 0.1, 0.1);
+      
+      entity.addChild(orb);
+    }
+
+    // Add floating ring
+    const ringMat = new pc.StandardMaterial();
+    ringMat.diffuse = color;
+    ringMat.emissive = new pc.Color(color.r * 0.3, color.g * 0.3, color.b * 0.3);
+    ringMat.opacity = 0.4;
+    ringMat.blendType = pc.BLEND_ADDITIVE;
+    ringMat.update();
+
+    const ring = new pc.Entity('magic_ring');
+    ring.addComponent('render', { type: 'torus', material: ringMat });
+    ring.setLocalScale(1.2, 1.2, 0.1);
+    ring.setLocalEulerAngles(90, 0, 0);
+    ring.setLocalPosition(0, -0.2, 0);
+    entity.addChild(ring);
+  }
+
+  /**
+   * Create a magical orb for unknown words
+   */
+  private createMagicalOrb(keyword: string): pc.Entity {
     const entity = new pc.Entity(keyword);
     
     // Create colorful placeholder based on keyword hash

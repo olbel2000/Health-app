@@ -14,7 +14,12 @@ import type { CharacterType } from './types';
 // Game Configuration
 // ============================================
 
-const INITIAL_WORDS = ['apple', 'banana', 'cat', 'dog', 'elephant'];
+// Words with procedural 3D models available
+const INITIAL_WORDS = [
+  'apple', 'banana', 'cat', 'dog', 'elephant',  // First level
+  'star', 'heart', 'sun', 'moon', 'flower',     // Second level
+  'bird', 'fish', 'house', 'car', 'ball',       // Third level
+];
 
 // ============================================
 // Game Class
@@ -155,11 +160,30 @@ class LingoIsland {
    */
   private getHintForWord(word: string): string {
     const hints: Record<string, string> = {
-      'apple': 'A red or green fruit',
-      'banana': 'A yellow curved fruit',
-      'cat': 'A furry pet that meows',
-      'dog': 'A loyal pet that barks',
-      'elephant': 'A big gray animal with a trunk',
+      // Fruits
+      'apple': 'A red or green fruit 🍎',
+      'banana': 'A yellow curved fruit 🍌',
+      'orange': 'A round citrus fruit 🍊',
+      'grape': 'Small purple fruits in bunches 🍇',
+      'strawberry': 'A red berry with seeds 🍓',
+      // Animals
+      'cat': 'A furry pet that meows 🐱',
+      'dog': 'A loyal pet that barks 🐕',
+      'elephant': 'A big gray animal with a trunk 🐘',
+      'bird': 'An animal with wings that flies 🐦',
+      'fish': 'An animal that swims in water 🐟',
+      // Nature
+      'sun': 'The bright star in the sky ☀️',
+      'moon': 'It shines at night 🌙',
+      'flower': 'A colorful plant that blooms 🌸',
+      'tree': 'A tall plant with leaves 🌳',
+      // Shapes & Objects
+      'star': 'It twinkles in the night sky ⭐',
+      'heart': 'A symbol of love ❤️',
+      'house': 'A place where people live 🏠',
+      'car': 'A vehicle with four wheels 🚗',
+      'ball': 'A round toy to play with ⚽',
+      'book': 'You read stories in it 📖',
     };
     return hints[word] || 'Can you say this word?';
   }
