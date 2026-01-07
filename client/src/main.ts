@@ -163,13 +163,18 @@ class LingoIsland {
   private async startWordNinja(): Promise<void> {
     console.log('[Game] Starting Word Ninja mode...');
     
+    // Set state first to ensure game-ui is visible
+    this.engine.state = 'playing';
+    
     // Switch to Word Ninja scene
     await this.sceneManager.switchTo('word-ninja');
     
-    // Hide explore UI, show ninja UI
+    // Hide explore UI elements, show ninja UI
     document.getElementById('word-display')!.style.display = 'none';
     document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
     document.getElementById('ninja-ui')!.style.display = 'block';
+    
+    console.log('[Game] Ninja UI should now be visible');
     
     // Start with a random word
     const word = INITIAL_WORDS[Math.floor(Math.random() * INITIAL_WORDS.length)];
@@ -177,8 +182,6 @@ class LingoIsland {
     if (this.wordNinjaScene) {
       this.wordNinjaScene.startGame(word);
     }
-    
-    this.engine.state = 'playing';
   }
 
   /**
