@@ -25,7 +25,8 @@ async function checkApiAvailability(baseUrl: string): Promise<boolean> {
       signal: AbortSignal.timeout(5000) 
     });
     const data = await response.json();
-    return data.success && data.services?.meshyApi === true;
+    // Check for either tripoApi or meshyApi
+    return data.success && (data.services?.tripoApi === true || data.services?.meshyApi === true);
   } catch {
     return false;
   }

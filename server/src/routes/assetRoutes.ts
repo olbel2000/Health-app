@@ -7,7 +7,7 @@ import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { DatabaseService } from '../db/database.js';
-import { MeshyService } from '../services/meshyService.js';
+import { TripoService } from '../services/tripoService.js';
 import type { 
   Get3DModelRequest, 
   Get3DModelResponse, 
@@ -18,15 +18,15 @@ import { STYLE_CONFIGS } from '../types/index.js';
 
 const router = Router();
 
-// Initialize services (lazy init for MeshyService to ensure env vars are loaded)
+// Initialize services (lazy init for TripoService to ensure env vars are loaded)
 const db = DatabaseService.getInstance();
-let meshyInstance: MeshyService | null = null;
+let tripoInstance: TripoService | null = null;
 
-function getMeshyService(): MeshyService {
-  if (!meshyInstance) {
-    meshyInstance = new MeshyService();
+function getTripoService(): TripoService {
+  if (!tripoInstance) {
+    tripoInstance = new TripoService();
   }
-  return meshyInstance;
+  return tripoInstance;
 }
 
 /**
@@ -103,21 +103,21 @@ router.post('/get-3d-model', async (
       }
     }
 
-    // Step 2: Cache miss - check if Meshy is configured
-    const meshy = getMeshyService();
-    if (!meshy.isConfigured()) {
+    // Step 2: Cache miss - check if Tripo is configured
+    const tripo = getTripoService();
+    if (!tripo.isConfigured()) {
       res.status(503).json({
         success: false,
-        error: 'Asset generation service not configured. Set MESHY_API_KEY.',
+        error: 'Asset generation service not configured. Set TRIPO_API_KEY.',
         code: 'SERVICE_UNAVAILABLE'
       });
       return;
     }
 
-    console.log(`[API] Cache MISS for "${normalizedKeyword}" - generating...`);
+    console.log(`[API] Cache MISS for "${normalizedKeyword}" - generating via Tripo3D...`);
 
-    // Step 3: Generate via Meshy.ai
-    const { filename, taskId } = await meshy.generateAndDownload(normalizedKeyword, style);
+    // Step 3: Generate via Tripo3D
+    const { filename, taskId } = await tripo.generateAndDownload(normalizedKeyword, style);
     const localUrl = `/assets/${filename}`;
 
     // Step 4: Cache the result
@@ -222,13 +222,13 @@ router.get('/styles', (_req: Request, res: Response) => {
  * Health check endpoint
  */
 router.get('/health', (_req: Request, res: Response) => {
-  const meshy = getMeshyService();
+  const tripo = getTripoService();
   res.json({
     success: true,
     status: 'healthy',
     services: {
       database: true,
-      meshyApi: meshy.isConfigured()
+      tripoApi: tripo.isConfigured()
     },
     assetCount: db.getAssetCount(),
     timestamp: new Date().toISOString()
