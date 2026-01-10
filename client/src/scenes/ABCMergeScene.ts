@@ -90,41 +90,92 @@ export class ABCMergeScene extends Scene {
     private setupCamera(): void {
         this.camera = new pc.Entity('camera');
         this.camera.addComponent('camera', {
-            clearColor: new pc.Color(0.1, 0.15, 0.25),
+            clearColor: new pc.Color(0.12, 0.1, 0.25), // Deep purple/blue night sky
             fov: 45,
         });
         this.camera.setPosition(0, 2, 12);
         this.camera.lookAt(new pc.Vec3(0, 0, 0));
         this.root.addChild(this.camera);
+
+        // Add ambient particles
+        this.createAmbientParticles();
     }
 
     private setupLighting(): void {
+        // Main Warm Sun
         const light = new pc.Entity('light');
         light.addComponent('light', {
             type: 'directional',
-            color: new pc.Color(1, 0.95, 0.9),
-            intensity: 1.2,
+            color: new pc.Color(1, 0.9, 0.8), // Warm golden
+            intensity: 1.4,
+            castShadows: true,
         });
-        light.setEulerAngles(45, 45, 0);
+        light.setEulerAngles(45, 30, 0);
         this.root.addChild(light);
 
-        const ambient = new pc.Entity('ambient');
-        ambient.addComponent('light', {
+        // Cool Fill Light
+        const fillLight = new pc.Entity('fill-light');
+        fillLight.addComponent('light', {
             type: 'directional',
-            color: new pc.Color(0.4, 0.5, 0.7),
-            intensity: 0.5,
+            color: new pc.Color(0.3, 0.3, 0.5), // Cool blue/purple
+            intensity: 0.6,
         });
-        ambient.setEulerAngles(-30, -45, 0);
-        this.root.addChild(ambient);
+        fillLight.setEulerAngles(-30, -30, 0);
+        this.root.addChild(fillLight);
+
+        // Rim Light (Backlight for glossy effect)
+        const rimLight = new pc.Entity('rim-light');
+        rimLight.addComponent('light', {
+            type: 'directional',
+            color: new pc.Color(0.4, 0.6, 1.0), // Blue-ish rim
+            intensity: 0.8,
+        });
+        rimLight.setEulerAngles(180, 0, 0); // From behind
+        this.root.addChild(rimLight);
+    }
+
+    private createAmbientParticles(): void {
+        // Create floaty particles in background
+        const particleMat = new pc.StandardMaterial();
+        particleMat.emissive = new pc.Color(0.5, 0.7, 1);
+        particleMat.opacity = 0.6;
+        particleMat.blendType = pc.BLEND_ADDITIVE;
+        particleMat.update();
+
+        for (let i = 0; i < 30; i++) {
+            const p = new pc.Entity(`particle_${i}`);
+            p.addComponent('render', { type: 'sphere', material: particleMat });
+
+            const scale = 0.05 + Math.random() * 0.1;
+            p.setLocalScale(scale, scale, scale);
+
+            // Random position in background
+            const x = (Math.random() - 0.5) * 20;
+            const y = (Math.random() - 0.5) * 20;
+            const z = -5 - Math.random() * 10;
+            p.setPosition(x, y, z);
+
+            this.root.addChild(p);
+
+            // Simple animation
+            // Note: Proper animation usually requires updating in update loop, 
+            // but for simple static "stars" or slight floaters, static is fine for now
+            // or we add a script component if we want movement.
+            // Let's keep them static as "stars/fireflies" for now to save performance/code complexity
+        }
     }
 
     private createContainer(): void {
         this.container = new pc.Entity('container');
 
+        // Glass-like material
         const wallMat = new pc.StandardMaterial();
-        wallMat.diffuse = new pc.Color(0.2, 0.3, 0.5);
-        wallMat.opacity = 0.3;
+        wallMat.diffuse = new pc.Color(0.1, 0.2, 0.4);
+        wallMat.opacity = 0.15;
         wallMat.blendType = pc.BLEND_NORMAL;
+        wallMat.gloss = 0.9;
+        wallMat.metalness = 0.6;
+        wallMat.useMetalness = true;
         wallMat.update();
 
         // Left wall
@@ -265,22 +316,30 @@ export class ABCMergeScene extends Scene {
 
         const entity = new pc.Entity(`animal-${animal.name}`);
 
-        // Create material
+        // Create material - TOY PLASTIC LOOK
         const mat = new pc.StandardMaterial();
         mat.diffuse = animal.color;
-        mat.gloss = 0.8;
-        mat.metalness = 0.1;
+        mat.gloss = 0.92; // High gloss for plastic look
+        mat.metalness = 0.3; // Slight metalness for rich specular
         mat.useMetalness = true;
+        mat.specular = new pc.Color(1, 1, 1); // Bright white specular highlights
+        mat.emissive = new pc.Color(
+            animal.color.r * 0.1,
+            animal.color.g * 0.1,
+            animal.color.b * 0.1
+        ); // Slight emissive to pop in shadows
         mat.update();
 
-        // Secondary material (for contrast parts)
+        // Secondary material
         const mat2 = new pc.StandardMaterial();
         mat2.diffuse = new pc.Color(
             animal.color.r * 0.6,
             animal.color.g * 0.6,
             animal.color.b * 0.6
         );
-        mat2.gloss = 0.7;
+        mat2.gloss = 0.85;
+        mat2.metalness = 0.2;
+        mat2.useMetalness = true;
         mat2.update();
 
         // Eye material
