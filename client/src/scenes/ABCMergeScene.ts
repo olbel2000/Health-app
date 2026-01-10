@@ -260,20 +260,599 @@ export class ABCMergeScene extends Scene {
     private createAnimalEntity(level: number): pc.Entity {
         const animal = ANIMALS[level];
         const radius = BASE_RADIUS * Math.pow(SIZE_MULTIPLIER, level);
+        const scale = radius * 2;
 
         const entity = new pc.Entity(`animal-${animal.name}`);
 
+        // Create material
         const mat = new pc.StandardMaterial();
         mat.diffuse = animal.color;
-        mat.gloss = 0.7;
+        mat.gloss = 0.8;
         mat.metalness = 0.1;
         mat.useMetalness = true;
         mat.update();
 
-        entity.addComponent('render', { type: 'sphere', material: mat });
-        entity.setLocalScale(radius * 2, radius * 2, radius * 2);
+        // Secondary material (for contrast parts)
+        const mat2 = new pc.StandardMaterial();
+        mat2.diffuse = new pc.Color(
+            animal.color.r * 0.6,
+            animal.color.g * 0.6,
+            animal.color.b * 0.6
+        );
+        mat2.gloss = 0.7;
+        mat2.update();
+
+        // Eye material
+        const eyeMat = new pc.StandardMaterial();
+        eyeMat.diffuse = new pc.Color(1, 1, 1);
+        eyeMat.gloss = 0.95;
+        eyeMat.update();
+
+        const pupilMat = new pc.StandardMaterial();
+        pupilMat.diffuse = new pc.Color(0.05, 0.05, 0.05);
+        pupilMat.gloss = 0.9;
+        pupilMat.update();
+
+        // Build animal based on type
+        switch (level) {
+            case 0: // Ant
+                this.buildAnt(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 1: // Bee
+                this.buildBee(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 2: // Cat
+                this.buildCat(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 3: // Dog
+                this.buildDog(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 4: // Elephant
+                this.buildElephant(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 5: // Fish
+                this.buildFish(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 6: // Giraffe
+                this.buildGiraffe(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 11: // Lion
+                this.buildLion(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 15: // Penguin
+                this.buildPenguin(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 17: // Rabbit
+                this.buildRabbit(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            case 25: // Zebra
+                this.buildZebra(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+            default:
+                // Generic cute animal for others
+                this.buildGenericAnimal(entity, mat, mat2, eyeMat, pupilMat, scale);
+                break;
+        }
 
         return entity;
+    }
+
+    private buildAnt(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.4, scale * 0.35, scale * 0.4);
+        head.setLocalPosition(0, scale * 0.15, scale * 0.25);
+        entity.addChild(head);
+
+        // Body segments
+        const thorax = new pc.Entity('thorax');
+        thorax.addComponent('render', { type: 'sphere', material: mat });
+        thorax.setLocalScale(scale * 0.35, scale * 0.3, scale * 0.35);
+        thorax.setLocalPosition(0, 0, 0);
+        entity.addChild(thorax);
+
+        const abdomen = new pc.Entity('abdomen');
+        abdomen.addComponent('render', { type: 'sphere', material: mat });
+        abdomen.setLocalScale(scale * 0.5, scale * 0.4, scale * 0.5);
+        abdomen.setLocalPosition(0, -scale * 0.1, -scale * 0.3);
+        entity.addChild(abdomen);
+
+        // Antennae
+        [-0.08, 0.08].forEach((x, i) => {
+            const antenna = new pc.Entity(`antenna_${i}`);
+            antenna.addComponent('render', { type: 'cylinder', material: mat2 });
+            antenna.setLocalScale(scale * 0.03, scale * 0.2, scale * 0.03);
+            antenna.setLocalPosition(x * scale, scale * 0.35, scale * 0.3);
+            antenna.setEulerAngles(30, 0, x < 0 ? 20 : -20);
+            entity.addChild(antenna);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.2, scale * 0.4);
+    }
+
+    private buildBee(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Create black stripe material
+        const blackMat = new pc.StandardMaterial();
+        blackMat.diffuse = new pc.Color(0.1, 0.1, 0.1);
+        blackMat.gloss = 0.8;
+        blackMat.update();
+
+        // Body (yellow)
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.6, scale * 0.5, scale * 0.8);
+        entity.addChild(body);
+
+        // Black stripes
+        [-0.1, 0.1].forEach((z, i) => {
+            const stripe = new pc.Entity(`stripe_${i}`);
+            stripe.addComponent('render', { type: 'cylinder', material: blackMat });
+            stripe.setLocalScale(scale * 0.65, scale * 0.08, scale * 0.55);
+            stripe.setLocalPosition(0, 0, z * scale);
+            stripe.setEulerAngles(90, 0, 0);
+            entity.addChild(stripe);
+        });
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.35, scale * 0.35, scale * 0.35);
+        head.setLocalPosition(0, scale * 0.1, scale * 0.35);
+        entity.addChild(head);
+
+        // Wings
+        const wingMat = new pc.StandardMaterial();
+        wingMat.diffuse = new pc.Color(0.9, 0.95, 1);
+        wingMat.opacity = 0.5;
+        wingMat.blendType = pc.BLEND_NORMAL;
+        wingMat.update();
+
+        [-0.25, 0.25].forEach((x, i) => {
+            const wing = new pc.Entity(`wing_${i}`);
+            wing.addComponent('render', { type: 'sphere', material: wingMat });
+            wing.setLocalScale(scale * 0.15, scale * 0.02, scale * 0.35);
+            wing.setLocalPosition(x * scale, scale * 0.25, 0);
+            wing.setEulerAngles(0, 0, x < 0 ? 30 : -30);
+            entity.addChild(wing);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.2, scale * 0.5);
+    }
+
+    private buildCat(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.7, scale * 0.6, scale * 0.8);
+        entity.addChild(body);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.5, scale * 0.45, scale * 0.45);
+        head.setLocalPosition(0, scale * 0.35, scale * 0.2);
+        entity.addChild(head);
+
+        // Ears (triangular)
+        [-0.15, 0.15].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'cone', material: mat });
+            ear.setLocalScale(scale * 0.15, scale * 0.2, scale * 0.1);
+            ear.setLocalPosition(x * scale, scale * 0.55, scale * 0.15);
+            ear.setEulerAngles(0, 0, x < 0 ? 15 : -15);
+            entity.addChild(ear);
+        });
+
+        // Tail
+        const tail = new pc.Entity('tail');
+        tail.addComponent('render', { type: 'cylinder', material: mat });
+        tail.setLocalScale(scale * 0.08, scale * 0.4, scale * 0.08);
+        tail.setLocalPosition(0, scale * 0.2, -scale * 0.45);
+        tail.setEulerAngles(-45, 0, 0);
+        entity.addChild(tail);
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.12, scale * 0.45, scale * 0.4);
+    }
+
+    private buildDog(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.75, scale * 0.6, scale * 0.85);
+        entity.addChild(body);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.5, scale * 0.45, scale * 0.5);
+        head.setLocalPosition(0, scale * 0.35, scale * 0.25);
+        entity.addChild(head);
+
+        // Snout
+        const snout = new pc.Entity('snout');
+        snout.addComponent('render', { type: 'sphere', material: mat2 });
+        snout.setLocalScale(scale * 0.2, scale * 0.15, scale * 0.2);
+        snout.setLocalPosition(0, scale * 0.3, scale * 0.45);
+        entity.addChild(snout);
+
+        // Nose
+        const noseMat = new pc.StandardMaterial();
+        noseMat.diffuse = new pc.Color(0.1, 0.1, 0.1);
+        noseMat.update();
+        const nose = new pc.Entity('nose');
+        nose.addComponent('render', { type: 'sphere', material: noseMat });
+        nose.setLocalScale(scale * 0.08, scale * 0.06, scale * 0.08);
+        nose.setLocalPosition(0, scale * 0.32, scale * 0.52);
+        entity.addChild(nose);
+
+        // Floppy ears
+        [-0.22, 0.22].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'sphere', material: mat2 });
+            ear.setLocalScale(scale * 0.15, scale * 0.25, scale * 0.08);
+            ear.setLocalPosition(x * scale, scale * 0.3, scale * 0.15);
+            entity.addChild(ear);
+        });
+
+        // Tail
+        const tail = new pc.Entity('tail');
+        tail.addComponent('render', { type: 'cylinder', material: mat });
+        tail.setLocalScale(scale * 0.1, scale * 0.3, scale * 0.08);
+        tail.setLocalPosition(0, scale * 0.25, -scale * 0.45);
+        tail.setEulerAngles(-60, 0, 0);
+        entity.addChild(tail);
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.45, scale * 0.42);
+    }
+
+    private buildElephant(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.9, scale * 0.75, scale);
+        entity.addChild(body);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.55, scale * 0.5, scale * 0.5);
+        head.setLocalPosition(0, scale * 0.4, scale * 0.35);
+        entity.addChild(head);
+
+        // Trunk
+        const trunk = new pc.Entity('trunk');
+        trunk.addComponent('render', { type: 'cylinder', material: mat });
+        trunk.setLocalScale(scale * 0.12, scale * 0.4, scale * 0.1);
+        trunk.setLocalPosition(0, scale * 0.15, scale * 0.55);
+        trunk.setEulerAngles(30, 0, 0);
+        entity.addChild(trunk);
+
+        // Big ears
+        [-0.35, 0.35].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'sphere', material: mat2 });
+            ear.setLocalScale(scale * 0.35, scale * 0.4, scale * 0.08);
+            ear.setLocalPosition(x * scale, scale * 0.4, scale * 0.2);
+            entity.addChild(ear);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.5, scale * 0.5);
+    }
+
+    private buildFish(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.5, scale * 0.6, scale);
+        entity.addChild(body);
+
+        // Tail fin
+        const tail = new pc.Entity('tail');
+        tail.addComponent('render', { type: 'cone', material: mat2 });
+        tail.setLocalScale(scale * 0.3, scale * 0.4, scale * 0.1);
+        tail.setLocalPosition(0, 0, -scale * 0.5);
+        tail.setEulerAngles(0, 0, 0);
+        entity.addChild(tail);
+
+        // Top fin
+        const topFin = new pc.Entity('top-fin');
+        topFin.addComponent('render', { type: 'cone', material: mat2 });
+        topFin.setLocalScale(scale * 0.08, scale * 0.25, scale * 0.3);
+        topFin.setLocalPosition(0, scale * 0.35, 0);
+        entity.addChild(topFin);
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.12, scale * 0.1, scale * 0.35);
+    }
+
+    private buildGiraffe(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.6, scale * 0.5, scale * 0.7);
+        body.setLocalPosition(0, -scale * 0.1, 0);
+        entity.addChild(body);
+
+        // Long neck
+        const neck = new pc.Entity('neck');
+        neck.addComponent('render', { type: 'cylinder', material: mat });
+        neck.setLocalScale(scale * 0.15, scale * 0.5, scale * 0.15);
+        neck.setLocalPosition(0, scale * 0.35, scale * 0.15);
+        neck.setEulerAngles(-15, 0, 0);
+        entity.addChild(neck);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.25, scale * 0.2, scale * 0.25);
+        head.setLocalPosition(0, scale * 0.6, scale * 0.25);
+        entity.addChild(head);
+
+        // Horns (ossicones)
+        [-0.06, 0.06].forEach((x, i) => {
+            const horn = new pc.Entity(`horn_${i}`);
+            horn.addComponent('render', { type: 'cylinder', material: mat2 });
+            horn.setLocalScale(scale * 0.04, scale * 0.1, scale * 0.04);
+            horn.setLocalPosition(x * scale, scale * 0.72, scale * 0.25);
+            entity.addChild(horn);
+        });
+
+        // Spots
+        const spotMat = new pc.StandardMaterial();
+        spotMat.diffuse = new pc.Color(0.5, 0.3, 0.1);
+        spotMat.update();
+        [{ x: 0.15, y: 0, z: 0.2 }, { x: -0.1, y: -0.1, z: -0.15 }].forEach((pos, i) => {
+            const spot = new pc.Entity(`spot_${i}`);
+            spot.addComponent('render', { type: 'sphere', material: spotMat });
+            spot.setLocalScale(scale * 0.12, scale * 0.08, scale * 0.12);
+            spot.setLocalPosition(pos.x * scale, pos.y * scale, pos.z * scale);
+            entity.addChild(spot);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.06, scale * 0.62, scale * 0.38);
+    }
+
+    private buildLion(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Mane
+        const maneMat = new pc.StandardMaterial();
+        maneMat.diffuse = new pc.Color(0.6, 0.35, 0.1);
+        maneMat.update();
+        const mane = new pc.Entity('mane');
+        mane.addComponent('render', { type: 'sphere', material: maneMat });
+        mane.setLocalScale(scale * 0.8, scale * 0.75, scale * 0.5);
+        mane.setLocalPosition(0, scale * 0.25, scale * 0.1);
+        entity.addChild(mane);
+
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.7, scale * 0.55, scale * 0.8);
+        entity.addChild(body);
+
+        // Face
+        const face = new pc.Entity('face');
+        face.addComponent('render', { type: 'sphere', material: mat });
+        face.setLocalScale(scale * 0.45, scale * 0.4, scale * 0.35);
+        face.setLocalPosition(0, scale * 0.3, scale * 0.25);
+        entity.addChild(face);
+
+        // Snout
+        const snout = new pc.Entity('snout');
+        snout.addComponent('render', { type: 'sphere', material: mat2 });
+        snout.setLocalScale(scale * 0.18, scale * 0.12, scale * 0.15);
+        snout.setLocalPosition(0, scale * 0.22, scale * 0.42);
+        entity.addChild(snout);
+
+        // Small ears
+        [-0.2, 0.2].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'sphere', material: mat });
+            ear.setLocalScale(scale * 0.1, scale * 0.1, scale * 0.05);
+            ear.setLocalPosition(x * scale, scale * 0.5, scale * 0.1);
+            entity.addChild(ear);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.38, scale * 0.4);
+    }
+
+    private buildPenguin(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body (black)
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.6, scale * 0.85, scale * 0.55);
+        entity.addChild(body);
+
+        // Belly (white)
+        const bellyMat = new pc.StandardMaterial();
+        bellyMat.diffuse = new pc.Color(0.95, 0.95, 0.95);
+        bellyMat.update();
+        const belly = new pc.Entity('belly');
+        belly.addComponent('render', { type: 'sphere', material: bellyMat });
+        belly.setLocalScale(scale * 0.4, scale * 0.65, scale * 0.35);
+        belly.setLocalPosition(0, -scale * 0.05, scale * 0.15);
+        entity.addChild(belly);
+
+        // Beak (orange)
+        const beakMat = new pc.StandardMaterial();
+        beakMat.diffuse = new pc.Color(1, 0.5, 0);
+        beakMat.update();
+        const beak = new pc.Entity('beak');
+        beak.addComponent('render', { type: 'cone', material: beakMat });
+        beak.setLocalScale(scale * 0.1, scale * 0.12, scale * 0.08);
+        beak.setLocalPosition(0, scale * 0.2, scale * 0.3);
+        beak.setEulerAngles(90, 0, 0);
+        entity.addChild(beak);
+
+        // Feet
+        [-0.12, 0.12].forEach((x, i) => {
+            const foot = new pc.Entity(`foot_${i}`);
+            foot.addComponent('render', { type: 'box', material: beakMat });
+            foot.setLocalScale(scale * 0.15, scale * 0.03, scale * 0.12);
+            foot.setLocalPosition(x * scale, -scale * 0.42, scale * 0.08);
+            entity.addChild(foot);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.28, scale * 0.28);
+    }
+
+    private buildRabbit(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.6, scale * 0.55, scale * 0.7);
+        entity.addChild(body);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.45, scale * 0.4, scale * 0.4);
+        head.setLocalPosition(0, scale * 0.35, scale * 0.2);
+        entity.addChild(head);
+
+        // Long ears
+        [-0.1, 0.1].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'capsule', material: mat });
+            ear.setLocalScale(scale * 0.08, scale * 0.35, scale * 0.05);
+            ear.setLocalPosition(x * scale, scale * 0.65, scale * 0.1);
+            ear.setEulerAngles(0, 0, x < 0 ? 10 : -10);
+            entity.addChild(ear);
+        });
+
+        // Tail (fluffy ball)
+        const tail = new pc.Entity('tail');
+        tail.addComponent('render', { type: 'sphere', material: mat });
+        tail.setLocalScale(scale * 0.15, scale * 0.15, scale * 0.15);
+        tail.setLocalPosition(0, 0, -scale * 0.35);
+        entity.addChild(tail);
+
+        // Pink inner ear
+        const pinkMat = new pc.StandardMaterial();
+        pinkMat.diffuse = new pc.Color(1, 0.7, 0.75);
+        pinkMat.update();
+        [-0.08, 0.08].forEach((x, i) => {
+            const innerEar = new pc.Entity(`inner_ear_${i}`);
+            innerEar.addComponent('render', { type: 'capsule', material: pinkMat });
+            innerEar.setLocalScale(scale * 0.04, scale * 0.25, scale * 0.02);
+            innerEar.setLocalPosition(x * scale, scale * 0.62, scale * 0.12);
+            innerEar.setEulerAngles(0, 0, x < 0 ? 10 : -10);
+            entity.addChild(innerEar);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.42, scale * 0.38);
+    }
+
+    private buildZebra(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Body (white)
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.7, scale * 0.55, scale * 0.85);
+        entity.addChild(body);
+
+        // Black stripes
+        const stripeMat = new pc.StandardMaterial();
+        stripeMat.diffuse = new pc.Color(0.1, 0.1, 0.1);
+        stripeMat.update();
+        [-0.2, 0, 0.2].forEach((z, i) => {
+            const stripe = new pc.Entity(`stripe_${i}`);
+            stripe.addComponent('render', { type: 'box', material: stripeMat });
+            stripe.setLocalScale(scale * 0.72, scale * 0.56, scale * 0.05);
+            stripe.setLocalPosition(0, 0, z * scale);
+            entity.addChild(stripe);
+        });
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.35, scale * 0.35, scale * 0.45);
+        head.setLocalPosition(0, scale * 0.35, scale * 0.35);
+        entity.addChild(head);
+
+        // Snout
+        const snout = new pc.Entity('snout');
+        snout.addComponent('render', { type: 'sphere', material: mat });
+        snout.setLocalScale(scale * 0.18, scale * 0.15, scale * 0.2);
+        snout.setLocalPosition(0, scale * 0.28, scale * 0.52);
+        entity.addChild(snout);
+
+        // Mane (standing up)
+        const mane = new pc.Entity('mane');
+        mane.addComponent('render', { type: 'box', material: stripeMat });
+        mane.setLocalScale(scale * 0.05, scale * 0.2, scale * 0.4);
+        mane.setLocalPosition(0, scale * 0.55, scale * 0.2);
+        entity.addChild(mane);
+
+        // Ears
+        [-0.12, 0.12].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'cone', material: mat });
+            ear.setLocalScale(scale * 0.08, scale * 0.12, scale * 0.05);
+            ear.setLocalPosition(x * scale, scale * 0.52, scale * 0.3);
+            entity.addChild(ear);
+        });
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.07, scale * 0.4, scale * 0.48);
+    }
+
+    private buildGenericAnimal(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+        // Rounded body
+        const body = new pc.Entity('body');
+        body.addComponent('render', { type: 'sphere', material: mat });
+        body.setLocalScale(scale * 0.7, scale * 0.6, scale * 0.75);
+        entity.addChild(body);
+
+        // Head
+        const head = new pc.Entity('head');
+        head.addComponent('render', { type: 'sphere', material: mat });
+        head.setLocalScale(scale * 0.45, scale * 0.4, scale * 0.4);
+        head.setLocalPosition(0, scale * 0.35, scale * 0.2);
+        entity.addChild(head);
+
+        // Ears
+        [-0.15, 0.15].forEach((x, i) => {
+            const ear = new pc.Entity(`ear_${i}`);
+            ear.addComponent('render', { type: 'sphere', material: mat2 });
+            ear.setLocalScale(scale * 0.12, scale * 0.12, scale * 0.06);
+            ear.setLocalPosition(x * scale, scale * 0.52, scale * 0.15);
+            entity.addChild(ear);
+        });
+
+        // Snout
+        const snout = new pc.Entity('snout');
+        snout.addComponent('render', { type: 'sphere', material: mat2 });
+        snout.setLocalScale(scale * 0.15, scale * 0.1, scale * 0.12);
+        snout.setLocalPosition(0, scale * 0.28, scale * 0.38);
+        entity.addChild(snout);
+
+        // Eyes
+        this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.42, scale * 0.35);
+    }
+
+    private addEyes(entity: pc.Entity, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, size: number, yPos: number, zPos: number): void {
+        [-0.12, 0.12].forEach((x, i) => {
+            const eye = new pc.Entity(`eye_${i}`);
+            eye.addComponent('render', { type: 'sphere', material: eyeMat });
+            eye.setLocalScale(size, size, size * 0.5);
+            eye.setLocalPosition(x * size * 8, yPos, zPos);
+            entity.addChild(eye);
+
+            const pupil = new pc.Entity(`pupil_${i}`);
+            pupil.addComponent('render', { type: 'sphere', material: pupilMat });
+            pupil.setLocalScale(size * 0.5, size * 0.5, size * 0.3);
+            pupil.setLocalPosition(x * size * 8, yPos, zPos + size * 0.3);
+            entity.addChild(pupil);
+        });
     }
 
     private dropAnimal(): void {
