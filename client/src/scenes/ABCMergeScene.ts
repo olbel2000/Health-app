@@ -145,64 +145,91 @@ export class ABCMergeScene extends Scene {
         particleMat.blendType = pc.BLEND_ADDITIVE;
         particleMat.update();
 
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 40; i++) {
             const p = new pc.Entity(`particle_${i}`);
-            p.addComponent('render', { type: 'sphere', material: particleMat });
+            // Use simple colored planes/boxes for "leaves" or "spores"
+            p.addComponent('render', { type: 'box', material: particleMat });
 
-            const scale = 0.05 + Math.random() * 0.1;
-            p.setLocalScale(scale, scale, scale);
+            const scale = 0.05 + Math.random() * 0.15;
+            p.setLocalScale(scale, scale * 0.1, scale * 0.8); // Leaf shapeish
+
+            // Tropical colors (Green, Pink, Gold)
+            const colors = [
+                new pc.Color(0.2, 0.8, 0.4), // Green
+                new pc.Color(1, 0.4, 0.7),   // Pink
+                new pc.Color(1, 0.8, 0.2)    // Gold
+            ];
+            const pMat = new pc.StandardMaterial();
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            pMat.emissive = color;
+            pMat.diffuse = color;
+            pMat.opacity = 0.8;
+            pMat.blendType = pc.BLEND_ADDITIVE;
+            pMat.update();
+
+            p.render!.material = pMat; // Assign unique material
 
             // Random position in background
-            const x = (Math.random() - 0.5) * 20;
+            const x = (Math.random() - 0.5) * 25;
             const y = (Math.random() - 0.5) * 20;
-            const z = -5 - Math.random() * 10;
+            const z = -2 - Math.random() * 8;
             p.setPosition(x, y, z);
 
-            this.root.addChild(p);
+            // Random rotation
+            p.setEulerAngles(Math.random() * 360, Math.random() * 360, Math.random() * 360);
 
-            // Simple animation
-            // Note: Proper animation usually requires updating in update loop, 
-            // but for simple static "stars" or slight floaters, static is fine for now
-            // or we add a script component if we want movement.
-            // Let's keep them static as "stars/fireflies" for now to save performance/code complexity
+            this.root.addChild(p);
         }
     }
 
     private createContainer(): void {
         this.container = new pc.Entity('container');
 
-        // Glass-like material
-        const wallMat = new pc.StandardMaterial();
-        wallMat.diffuse = new pc.Color(0.1, 0.2, 0.4);
-        wallMat.opacity = 0.15;
-        wallMat.blendType = pc.BLEND_NORMAL;
-        wallMat.gloss = 0.9;
-        wallMat.metalness = 0.6;
-        wallMat.useMetalness = true;
-        wallMat.update();
+        // BAMBOO Material
+        const bambooMat = new pc.StandardMaterial();
+        bambooMat.diffuse = new pc.Color(0.4, 0.6, 0.2); // Greenish bamboo
+        bambooMat.gloss = 0.4;
+        bambooMat.metalness = 0.1;
+        bambooMat.useMetalness = true;
+        bambooMat.update();
 
-        // Left wall
-        const leftWall = new pc.Entity('left-wall');
-        leftWall.addComponent('render', { type: 'box', material: wallMat });
-        leftWall.setLocalScale(0.2, this.containerHeight, this.containerDepth);
+        // BAMBOO JOINTS (Darker rings) - Optional visual detail could be added here
+
+        // WATER Material
+        const waterMat = new pc.StandardMaterial();
+        waterMat.diffuse = new pc.Color(0.2, 0.6, 0.8);
+        waterMat.opacity = 0.6;
+        waterMat.blendType = pc.BLEND_NORMAL;
+        waterMat.gloss = 0.9;
+        waterMat.metalness = 0.6;
+        waterMat.useMetalness = true;
+        waterMat.emissive = new pc.Color(0.1, 0.3, 0.4);
+        waterMat.update();
+
+        // Left Bamboo
+        const leftWall = new pc.Entity('left-bamboo');
+        leftWall.addComponent('render', { type: 'cylinder', material: bambooMat });
+        leftWall.setLocalScale(0.3, this.containerHeight, 0.3); // Cylinder
         leftWall.setPosition(-this.containerWidth / 2 - 0.1, 0, 0);
         this.container.addChild(leftWall);
 
-        // Right wall
-        const rightWall = new pc.Entity('right-wall');
-        rightWall.addComponent('render', { type: 'box', material: wallMat });
-        rightWall.setLocalScale(0.2, this.containerHeight, this.containerDepth);
+        // Right Bamboo
+        const rightWall = new pc.Entity('right-bamboo');
+        rightWall.addComponent('render', { type: 'cylinder', material: bambooMat });
+        rightWall.setLocalScale(0.3, this.containerHeight, 0.3);
         rightWall.setPosition(this.containerWidth / 2 + 0.1, 0, 0);
         this.container.addChild(rightWall);
 
-        // Bottom
-        const bottomMat = new pc.StandardMaterial();
-        bottomMat.diffuse = new pc.Color(0.3, 0.4, 0.5);
-        bottomMat.update();
+        // Invisible walls for physics (since cylinders are round and might act weird with physics interactions if we used them directly)
+        // We keep invisible box colliders effectively by not rendering them or rendering transparently?
+        // Ideally we should have separate visual and physics, but here we just rely on visual bounds?
+        // Wait, the collision logic in dropAnimal uses manual checking against containerWidth, so visual walls don't need physics components!
+        // Perfect.
 
-        const bottom = new pc.Entity('bottom');
-        bottom.addComponent('render', { type: 'box', material: bottomMat });
-        bottom.setLocalScale(this.containerWidth + 0.4, 0.3, this.containerDepth);
+        // Bottom - Water Bed
+        const bottom = new pc.Entity('water-bed');
+        bottom.addComponent('render', { type: 'box', material: waterMat });
+        bottom.setLocalScale(this.containerWidth + 0.4, 0.5, this.containerDepth); // Thicker water box
         bottom.setPosition(0, -this.containerHeight / 2, 0);
         this.container.addChild(bottom);
 
