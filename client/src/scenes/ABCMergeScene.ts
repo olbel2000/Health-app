@@ -64,11 +64,14 @@ export class ABCMergeScene extends Scene {
     private canDrop = true;
     private graceTimer = 0;
 
+    private guideLine: pc.Entity | null = null;
+    private dropHeight = 3.2; // Lowered from 4 to fix top UI overlap (3.2 works well)
+
     // Container dimensions
     private containerWidth = 6;
     private containerHeight = 8;
     private containerDepth = 2;
-    private dropHeight = 4;
+
     private dangerLineY = 3;
 
     // Physics
@@ -217,6 +220,30 @@ export class ABCMergeScene extends Scene {
         dangerLine.setPosition(0, this.dangerLineY, 0);
         this.container.addChild(dangerLine);
 
+        this.container.addChild(dangerLine);
+
+        // Guide Line (Visual aiming aid)
+        this.guideLine = new pc.Entity('guide-line');
+        // Create a thin vertical line
+        this.guideLine.addComponent('render', { type: 'cylinder', material: new pc.StandardMaterial() });
+        const guideMat = this.guideLine.render!.meshInstances[0].material as pc.StandardMaterial;
+        guideMat.diffuse = new pc.Color(1, 1, 1);
+        guideMat.opacity = 0.3; // Semi-transparent
+        guideMat.blendType = pc.BLEND_ADDITIVE;
+        guideMat.emissive = new pc.Color(0.5, 0.5, 0.5);
+        guideMat.update();
+
+        // Scale it to look like a line (thin and tall)
+        // Tall enough to reach bottom from top
+        const lineHeight = this.containerHeight + 2;
+        this.guideLine.setLocalScale(0.02, lineHeight, 0.02);
+        // Position it so top is near drop height
+        // Cylinder origin is center, so move it down by half height
+        this.guideLine.setLocalPosition(0, -lineHeight / 2 + 3.5, 0);
+
+        this.root.addChild(this.guideLine);
+        this.guideLine.enabled = false; // Hidden initially
+
         this.root.addChild(this.container);
     }
 
@@ -230,7 +257,13 @@ export class ABCMergeScene extends Scene {
             const normalizedX = (x - rect.left) / rect.width;
             const targetX = (normalizedX - 0.5) * this.containerWidth * 0.9;
             this.dropX = Math.max(-this.containerWidth / 2 + 0.5, Math.min(this.containerWidth / 2 - 0.5, targetX));
+            this.dropX = Math.max(-this.containerWidth / 2 + 0.5, Math.min(this.containerWidth / 2 - 0.5, targetX));
             this.currentAnimal.setPosition(this.dropX, this.dropHeight, 0);
+
+            // Update guide line position
+            if (this.guideLine) {
+                this.guideLine.setPosition(this.dropX, this.guideLine.getPosition().y, 0);
+            }
         };
 
         canvas.addEventListener('mousemove', (e) => onMove(e.clientX));
@@ -306,6 +339,13 @@ export class ABCMergeScene extends Scene {
         this.root.addChild(this.currentAnimal);
 
         this.canDrop = true;
+
+        // Show guide line
+        if (this.guideLine) {
+            this.guideLine.enabled = true;
+            this.guideLine.setPosition(this.dropX, this.guideLine.getPosition().y, 0);
+        }
+
         this.updateUI();
     }
 
@@ -919,6 +959,12 @@ export class ABCMergeScene extends Scene {
         if (!this.currentAnimal) return;
 
         this.canDrop = false;
+
+        // Hide guide line on drop
+        if (this.guideLine) {
+            this.guideLine.enabled = false;
+        }
+
         soundManager.play('drop');
 
         const radius = BASE_RADIUS * Math.pow(SIZE_MULTIPLIER, this.currentLevel);
