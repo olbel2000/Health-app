@@ -6,6 +6,7 @@
 
 import * as pc from 'playcanvas';
 import { Scene } from '../core/SceneManager';
+import { soundManager } from '../services/SoundManager';
 
 // Animal definitions A-Z
 const ANIMALS = [
@@ -859,6 +860,7 @@ export class ABCMergeScene extends Scene {
         if (!this.currentAnimal) return;
 
         this.canDrop = false;
+        soundManager.play('drop');
 
         const radius = BASE_RADIUS * Math.pow(SIZE_MULTIPLIER, this.currentLevel);
 
@@ -1037,6 +1039,9 @@ export class ABCMergeScene extends Scene {
             this.bestLevel = newLevel;
         }
 
+        // Play merge sound (higher pitch for higher levels)
+        soundManager.play('merge', newLevel);
+
         // Show merge notification
         this.showMergeNotification(newLevel);
         this.updateUI();
@@ -1075,6 +1080,7 @@ export class ABCMergeScene extends Scene {
 
     private gameOver(): void {
         this.isPlaying = false;
+        soundManager.play('gameOver');
 
         // Show game over
         const gameOver = document.getElementById('game-over');

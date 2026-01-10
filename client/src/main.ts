@@ -10,6 +10,7 @@ import { UIManager } from './ui/UIManager';
 import { IslandScene } from './scenes/IslandScene';
 import { WordNinjaScene } from './scenes/WordNinjaScene';
 import { ABCMergeScene } from './scenes/ABCMergeScene';
+import { soundManager } from './services/SoundManager';
 import type { CharacterType } from './types';
 
 // ============================================
@@ -129,7 +130,18 @@ class LingoIsland {
     // Back to menu button
     document.getElementById('btn-menu')?.addEventListener('click', () => {
       document.getElementById('game-over')!.style.display = 'none';
+      document.getElementById('merge-ui')!.style.display = 'none';
       this.showModeSelect();
+    });
+
+    // Sound toggle button for merge
+    document.getElementById('btn-sound-merge')?.addEventListener('click', () => {
+      const enabled = soundManager.toggle();
+      const btn = document.getElementById('btn-sound-merge');
+      if (btn) {
+        btn.textContent = enabled ? '🔊' : '🔇';
+        btn.style.background = enabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.3)';
+      }
     });
   }
 
