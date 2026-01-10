@@ -9,13 +9,14 @@ import { AssetLoader } from './services/AssetLoader';
 import { UIManager } from './ui/UIManager';
 import { IslandScene } from './scenes/IslandScene';
 import { WordNinjaScene } from './scenes/WordNinjaScene';
+import { ABCMergeScene } from './scenes/ABCMergeScene';
 import type { CharacterType } from './types';
 
 // ============================================
 // Game Configuration
 // ============================================
 
-type GameMode = 'explore' | 'ninja';
+type GameMode = 'explore' | 'ninja' | 'merge';
 
 // Words with procedural 3D models available
 const INITIAL_WORDS = [
@@ -33,11 +34,12 @@ class LingoIsland {
   private sceneManager!: SceneManager;
   private assetLoader!: AssetLoader;
   private uiManager!: UIManager;
-  
+
   private currentWordIndex: number = 0;
   private hintTier: number = 0;
   private currentMode: GameMode = 'explore';
   private wordNinjaScene: WordNinjaScene | null = null;
+  private abcMergeScene: ABCMergeScene | null = null;
 
   async initialize(): Promise<void> {
     console.log('🏝️ Lingo Island initializing...');
@@ -55,7 +57,7 @@ class LingoIsland {
     // Initialize services
     this.assetLoader = AssetLoader.getInstance();
     this.sceneManager = SceneManager.getInstance();
-    
+
     // Initialize UI after engine
     this.uiManager = UIManager.getInstance();
     this.setupUICallbacks();
@@ -64,10 +66,14 @@ class LingoIsland {
     this.engine.setLoadingProgress('Creating world...');
     const islandScene = new IslandScene();
     this.sceneManager.register(islandScene);
-    
+
     // Create Word Ninja scene
     this.wordNinjaScene = new WordNinjaScene();
     this.sceneManager.register(this.wordNinjaScene);
+
+    // Create ABC Merge scene
+    this.abcMergeScene = new ABCMergeScene();
+    this.sceneManager.register(this.abcMergeScene);
 
     // Check server connection
     this.engine.setLoadingProgress('Connecting to server...');
@@ -79,10 +85,10 @@ class LingoIsland {
 
     // Ready!
     this.engine.setLoadingProgress('Ready!');
-    
+
     // Setup game mode selection
     this.setupModeSelection();
-    
+
     // Transition to mode select (after character select)
     setTimeout(() => {
       this.engine.state = 'character-select';
@@ -97,7 +103,7 @@ class LingoIsland {
   private setupModeSelection(): void {
     const modeSelect = document.getElementById('mode-select');
     const modeCards = document.querySelectorAll('.mode-card');
-    
+
     modeCards.forEach(card => {
       card.addEventListener('click', () => {
         const mode = card.getAttribute('data-mode') as GameMode;
@@ -105,12 +111,12 @@ class LingoIsland {
         modeSelect?.classList.remove('active');
       });
     });
-    
+
     // Game over events
     window.addEventListener('wordninja:gameover', ((e: CustomEvent) => {
       this.showGameOver(e.detail.score);
     }) as EventListener);
-    
+
     // Play again button
     document.getElementById('btn-play-again')?.addEventListener('click', () => {
       document.getElementById('game-over')!.style.display = 'none';
@@ -119,7 +125,7 @@ class LingoIsland {
         this.wordNinjaScene.startGame(word);
       }
     });
-    
+
     // Back to menu button
     document.getElementById('btn-menu')?.addEventListener('click', () => {
       document.getElementById('game-over')!.style.display = 'none';
@@ -135,10 +141,10 @@ class LingoIsland {
     document.getElementById('word-display')!.style.display = 'none';
     document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
     document.getElementById('ninja-ui')!.style.display = 'none';
-    
+
     // Show mode select
     document.getElementById('mode-select')?.classList.add('active');
-    
+
     // Switch to island scene for background
     this.sceneManager.switchTo('island');
   }
@@ -149,9 +155,11 @@ class LingoIsland {
   private async onModeSelected(mode: GameMode): Promise<void> {
     console.log(`[Game] Mode selected: ${mode}`);
     this.currentMode = mode;
-    
+
     if (mode === 'ninja') {
       await this.startWordNinja();
+    } else if (mode === 'merge') {
+      await this.startABCMerge();
     } else {
       await this.startExploreMode();
     }
@@ -162,23 +170,23 @@ class LingoIsland {
    */
   private async startWordNinja(): Promise<void> {
     console.log('[Game] Starting Word Ninja mode...');
-    
+
     // Set state first to ensure game-ui is visible
     this.engine.state = 'playing';
-    
+
     // Switch to Word Ninja scene
     await this.sceneManager.switchTo('word-ninja');
-    
+
     // Hide explore UI elements, show ninja UI
     document.getElementById('word-display')!.style.display = 'none';
     document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
     document.getElementById('ninja-ui')!.style.display = 'block';
-    
+
     console.log('[Game] Ninja UI should now be visible');
-    
+
     // Start with a random word
     const word = INITIAL_WORDS[Math.floor(Math.random() * INITIAL_WORDS.length)];
-    
+
     if (this.wordNinjaScene) {
       this.wordNinjaScene.startGame(word);
     }
@@ -189,18 +197,42 @@ class LingoIsland {
    */
   private async startExploreMode(): Promise<void> {
     console.log('[Game] Starting Explore mode...');
-    
+
     // Switch to island scene
     await this.sceneManager.switchTo('island');
-    
+
     // Show explore UI, hide ninja UI
     document.getElementById('ninja-ui')!.style.display = 'none';
     document.querySelector('.action-buttons')?.setAttribute('style', '');
-    
+
     // Start game with first word
     this.showCurrentWord();
-    
+
     this.engine.state = 'playing';
+  }
+
+  /**
+   * Start ABC Merge mode
+   */
+  private async startABCMerge(): Promise<void> {
+    console.log('[Game] Starting ABC Merge mode...');
+
+    // Set state
+    this.engine.state = 'playing';
+
+    // Switch to ABC Merge scene
+    await this.sceneManager.switchTo('abc-merge');
+
+    // Hide other UIs, show merge UI
+    document.getElementById('word-display')!.style.display = 'none';
+    document.querySelector('.action-buttons')?.setAttribute('style', 'display: none');
+    document.getElementById('ninja-ui')!.style.display = 'none';
+    document.getElementById('merge-ui')!.style.display = 'block';
+
+    // Start the game
+    if (this.abcMergeScene) {
+      this.abcMergeScene.startGame();
+    }
   }
 
   /**
@@ -219,10 +251,10 @@ class LingoIsland {
     try {
       const response = await fetch('/api/health');
       const data = await response.json();
-      
+
       if (data.success) {
         console.log('[Server] Connected:', data);
-        
+
         if (data.services.meshyApi) {
           this.uiManager.showToast('✨ 3D Generation enabled!', 3000);
         } else {
@@ -266,10 +298,10 @@ class LingoIsland {
    */
   private onCharacterSelected(character: CharacterType): void {
     console.log(`[Game] Character selected: ${character}`);
-    
+
     this.engine.selectCharacter(character);
     this.uiManager.hideCharacterSelect();
-    
+
     // Show mode selection for Ladybug (ninja mode available)
     if (character === 'ladybug') {
       this.showModeSelect();
@@ -286,9 +318,9 @@ class LingoIsland {
   private showCurrentWord(): void {
     const word = INITIAL_WORDS[this.currentWordIndex];
     this.hintTier = 0;
-    
+
     this.uiManager.showWord(word, this.getHintForWord(word));
-    
+
     // Try to load 3D model
     this.load3DWord(word);
   }
@@ -333,7 +365,7 @@ class LingoIsland {
     try {
       console.log(`[Game] Loading 3D model: ${word}`);
       const entity = await this.assetLoader.getEntity(word);
-      
+
       // Position in scene
       entity.setPosition(
         Math.random() * 4 - 2,
@@ -341,7 +373,7 @@ class LingoIsland {
         Math.random() * 4 - 2
       );
       entity.setLocalScale(0.5, 0.5, 0.5);
-      
+
       // Add to scene
       const scene = this.sceneManager.get('island') as IslandScene;
       if (scene) {
@@ -350,7 +382,7 @@ class LingoIsland {
           entity
         );
       }
-      
+
       console.log(`[Game] 3D model loaded: ${word}`);
     } catch (error) {
       console.warn(`[Game] Could not load 3D model for ${word}:`, error);
@@ -363,7 +395,7 @@ class LingoIsland {
   private showNextHint(): void {
     const word = INITIAL_WORDS[this.currentWordIndex];
     this.hintTier = Math.min(this.hintTier + 1, 3);
-    
+
     this.uiManager.showHint(word, this.hintTier);
     console.log(`[Game] Showing hint tier ${this.hintTier} for "${word}"`);
   }
@@ -379,7 +411,7 @@ class LingoIsland {
 
     const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     const recognition = new SpeechRecognition();
-    
+
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 3;
@@ -390,9 +422,9 @@ class LingoIsland {
       const results = event.results[0];
       const transcript = results[0].transcript.toLowerCase().trim();
       const confidence = results[0].confidence;
-      
+
       console.log(`[Speech] Heard: "${transcript}" (${Math.round(confidence * 100)}%)`);
-      
+
       this.checkAnswer(transcript);
     };
 
@@ -414,7 +446,7 @@ class LingoIsland {
    */
   private checkAnswer(transcript: string): void {
     const currentWord = INITIAL_WORDS[this.currentWordIndex].toLowerCase();
-    
+
     // Check if the transcript contains the word
     if (transcript.includes(currentWord) || this.isSimilar(transcript, currentWord)) {
       this.onCorrectAnswer();
@@ -429,15 +461,15 @@ class LingoIsland {
   private isSimilar(a: string, b: string): boolean {
     const aClean = a.replace(/[^a-z]/g, '');
     const bClean = b.replace(/[^a-z]/g, '');
-    
+
     // Check Levenshtein distance
     if (Math.abs(aClean.length - bClean.length) > 2) return false;
-    
+
     let matches = 0;
     for (let i = 0; i < Math.min(aClean.length, bClean.length); i++) {
       if (aClean[i] === bClean[i]) matches++;
     }
-    
+
     return matches / Math.max(aClean.length, bClean.length) > 0.7;
   }
 
@@ -447,17 +479,17 @@ class LingoIsland {
   private onCorrectAnswer(): void {
     const word = INITIAL_WORDS[this.currentWordIndex];
     const points = 100 - (this.hintTier * 20); // Less points if hints used
-    
+
     this.engine.addScore(points);
     this.engine.incrementStreak();
     this.engine.addLearnedWord(word);
-    
+
     this.uiManager.showSuccess(word, points);
     this.uiManager.updateScore(this.engine.progress.score);
     this.uiManager.updateStreak(this.engine.progress.streak);
-    
+
     console.log(`[Game] Correct! +${points} points`);
-    
+
     // Next word after delay
     setTimeout(() => {
       this.nextWord();
@@ -472,7 +504,7 @@ class LingoIsland {
     this.uiManager.updateStreak(0);
     this.uiManager.showError();
     this.uiManager.showToast(`Heard: "${heard}" - Try again!`);
-    
+
     console.log(`[Game] Wrong answer: "${heard}"`);
   }
 
@@ -490,12 +522,12 @@ class LingoIsland {
    */
   private nextWord(): void {
     this.currentWordIndex++;
-    
+
     if (this.currentWordIndex >= INITIAL_WORDS.length) {
       this.onLevelComplete();
       return;
     }
-    
+
     this.showCurrentWord();
   }
 
@@ -505,7 +537,7 @@ class LingoIsland {
   private onLevelComplete(): void {
     console.log('[Game] Level complete!');
     this.uiManager.showToast('🎉 Level Complete!', 3000);
-    
+
     // Reset for demo
     setTimeout(() => {
       this.currentWordIndex = 0;
