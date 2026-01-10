@@ -22,9 +22,9 @@ let DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 // Try to detect API availability
 async function checkApiAvailability(baseUrl: string): Promise<boolean> {
   try {
-    const response = await fetch(`${baseUrl}/api/health`, { 
+    const response = await fetch(`${baseUrl}/api/health`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000) 
+      signal: AbortSignal.timeout(5000)
     });
     const data = await response.json();
     // Check for either tripoApi or meshyApi
@@ -36,7 +36,7 @@ async function checkApiAvailability(baseUrl: string): Promise<boolean> {
 
 export class AssetLoader {
   private static instance: AssetLoader | null = null;
-  
+
   private config: MiddlewareConfig;
   private cache: Map<string, AssetCacheEntry> = new Map();
   private pendingLoads: Map<string, Promise<pc.Entity>> = new Map();
@@ -44,7 +44,7 @@ export class AssetLoader {
 
   private constructor(config: Partial<MiddlewareConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     // Check API availability on init
     this.initApiCheck();
   }
@@ -126,7 +126,7 @@ export class AssetLoader {
   async loadGLB(url: string, keyword: string): Promise<pc.Entity> {
     const engine = Engine.getInstance();
     const app = engine.app;
-    
+
     return new Promise((resolve, reject) => {
       // Create container asset for GLB
       const asset = new pc.Asset(keyword, 'container', {
@@ -135,14 +135,14 @@ export class AssetLoader {
 
       asset.on('load', () => {
         console.log(`[AssetLoader] GLB loaded: ${keyword}`);
-        
+
         // Get the container resource
         const container = asset.resource as pc.ContainerResource;
-        
+
         // Instantiate the model
         const entity = container.instantiateRenderEntity();
         entity.name = keyword;
-        
+
         resolve(entity);
       });
 
@@ -152,6 +152,40 @@ export class AssetLoader {
       });
 
       // Start loading
+      app.assets.add(asset);
+      app.assets.load(asset);
+    });
+  }
+
+  /**
+   * Load a Texture from URL
+   */
+  async loadTexture(url: string, name: string): Promise<pc.Texture> {
+    const engine = Engine.getInstance();
+    const app = engine.app;
+
+    return new Promise((resolve, reject) => {
+      // Check if already loaded
+      const existingAsset = app.assets.find(name);
+      if (existingAsset && existingAsset.resource) {
+        resolve(existingAsset.resource as pc.Texture);
+        return;
+      }
+
+      const asset = new pc.Asset(name, 'texture', {
+        url: url,
+      });
+
+      asset.on('load', () => {
+        console.log(`[AssetLoader] Texture loaded: ${name}`);
+        resolve(asset.resource as pc.Texture);
+      });
+
+      asset.on('error', (err: string) => {
+        console.error(`[AssetLoader] Failed to load texture ${name}:`, err);
+        reject(new Error(`Failed to load texture: ${err}`));
+      });
+
       app.assets.add(asset);
       app.assets.load(asset);
     });
@@ -204,7 +238,7 @@ export class AssetLoader {
    */
   private createPlaceholderEntity(keyword: string): pc.Entity {
     const generator = this.getWordModelGenerator();
-    
+
     // Try to get a procedural model first
     if (generator.hasModel(keyword)) {
       console.log(`[AssetLoader] Using procedural 3D model for: ${keyword}`);
@@ -213,14 +247,14 @@ export class AssetLoader {
         // Add floating animation container
         const container = new pc.Entity(keyword);
         container.addChild(model);
-        
+
         // Add magical glow around the model
         this.addMagicalGlow(container, keyword);
-        
+
         return container;
       }
     }
-    
+
     console.log(`[AssetLoader] Creating placeholder orb for: ${keyword}`);
     return this.createMagicalOrb(keyword);
   }
@@ -231,7 +265,7 @@ export class AssetLoader {
   private addMagicalGlow(entity: pc.Entity, keyword: string): void {
     const hash = keyword.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const colorIndex = hash % 5;
-    
+
     const colors = [
       new pc.Color(1, 0.35, 0.4),     // Ruby
       new pc.Color(0.35, 0.85, 0.45), // Emerald
@@ -239,9 +273,9 @@ export class AssetLoader {
       new pc.Color(1, 0.85, 0.25),    // Gold
       new pc.Color(0.85, 0.4, 1),     // Amethyst
     ];
-    
+
     const color = colors[colorIndex];
-    
+
     // Add glowing particles around the model
     const glowMat = new pc.StandardMaterial();
     glowMat.diffuse = color;
@@ -254,11 +288,11 @@ export class AssetLoader {
     for (let i = 0; i < 4; i++) {
       const orb = new pc.Entity(`glow_${i}`);
       orb.addComponent('render', { type: 'sphere', material: glowMat });
-      
+
       const angle = (i / 4) * Math.PI * 2;
       orb.setLocalPosition(Math.cos(angle) * 0.7, 0.3, Math.sin(angle) * 0.7);
       orb.setLocalScale(0.1, 0.1, 0.1);
-      
+
       entity.addChild(orb);
     }
 
@@ -283,11 +317,11 @@ export class AssetLoader {
    */
   private createMagicalOrb(keyword: string): pc.Entity {
     const entity = new pc.Entity(keyword);
-    
+
     // Create colorful placeholder based on keyword hash
     const hash = keyword.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const colorIndex = hash % 5;
-    
+
     // Predefined vibrant colors matching Nano Banana aesthetic
     const colorConfigs = [
       { diffuse: new pc.Color(1, 0.35, 0.4), emissive: new pc.Color(0.3, 0.08, 0.1) },    // Ruby
@@ -296,9 +330,9 @@ export class AssetLoader {
       { diffuse: new pc.Color(1, 0.85, 0.25), emissive: new pc.Color(0.3, 0.22, 0.05) },   // Gold
       { diffuse: new pc.Color(0.85, 0.4, 1), emissive: new pc.Color(0.22, 0.1, 0.3) },     // Amethyst
     ];
-    
+
     const config = colorConfigs[colorIndex];
-    
+
     // Main orb
     const material = new pc.StandardMaterial();
     material.diffuse = config.diffuse;
@@ -323,7 +357,7 @@ export class AssetLoader {
     glowMat.opacity = 0.3;
     glowMat.blendType = pc.BLEND_ADDITIVE;
     glowMat.update();
-    
+
     glowEntity.addComponent('render', {
       type: 'sphere',
       material: glowMat,
@@ -339,7 +373,7 @@ export class AssetLoader {
     ringMat.opacity = 0.5;
     ringMat.gloss = 0.9;
     ringMat.update();
-    
+
     ringEntity.addComponent('render', {
       type: 'torus',
       material: ringMat,
@@ -364,14 +398,14 @@ export class AssetLoader {
   private async loadEntity(keyword: string, style: AssetStyle, cacheKey: string): Promise<pc.Entity> {
     // Request from middleware (may generate)
     const response = await this.request3DModel(keyword, style);
-    
+
     if (!response.success) {
       throw new Error(response.message || 'Failed to get 3D model');
     }
 
     // Build full URL
-    const modelUrl = response.url.startsWith('http') 
-      ? response.url 
+    const modelUrl = response.url.startsWith('http')
+      ? response.url
       : `${this.config.baseUrl}${response.url}`;
 
     // Load the GLB
@@ -395,8 +429,8 @@ export class AssetLoader {
    */
   async preload(keywords: string[], style?: AssetStyle): Promise<void> {
     console.log(`[AssetLoader] Preloading ${keywords.length} assets...`);
-    
-    const promises = keywords.map(keyword => 
+
+    const promises = keywords.map(keyword =>
       this.getEntity(keyword, style).catch(err => {
         console.warn(`[AssetLoader] Failed to preload ${keyword}:`, err);
         return null;

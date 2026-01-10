@@ -7,6 +7,7 @@
 import * as pc from 'playcanvas';
 import { Scene } from '../core/SceneManager';
 import { soundManager } from '../services/SoundManager';
+import { AssetLoader } from '../services/AssetLoader';
 
 // Animal definitions A-Z
 const ANIMALS = [
@@ -137,7 +138,7 @@ export class ABCMergeScene extends Scene {
         this.root.addChild(rimLight);
     }
 
-    private createAmbientParticles(): void {
+    private async createAmbientParticles(): Promise<void> {
         // Create floaty particles in background
         const particleMat = new pc.StandardMaterial();
         particleMat.emissive = new pc.Color(0.5, 0.7, 1);
@@ -145,13 +146,28 @@ export class ABCMergeScene extends Scene {
         particleMat.blendType = pc.BLEND_ADDITIVE;
         particleMat.update();
 
+        // Load Leaf Texture
+        const assetLoader = AssetLoader.getInstance();
+        try {
+            await assetLoader.loadTexture('/textures/leaf.png', 'leaf-texture');
+            // If loaded, we use a different material setup
+            console.log("Leaf texture loaded");
+        } catch (e) {
+            console.warn("Leaf texture failed to load", e);
+        }
+
         for (let i = 0; i < 40; i++) {
             const p = new pc.Entity(`particle_${i}`);
+
             // Use simple colored planes/boxes for "leaves" or "spores"
-            p.addComponent('render', { type: 'box', material: particleMat });
+            // If we had the texture, we would use a plane with opacity map
+            // For now, let's keep the colored boxes but try to apply the texture if available to a subset?
+            // Actually, let's just create a shared material for the textured ones
+
+            p.addComponent('render', { type: 'plane', material: particleMat }); // changed to plane for leaf look
 
             const scale = 0.05 + Math.random() * 0.15;
-            p.setLocalScale(scale, scale * 0.1, scale * 0.8); // Leaf shapeish
+            p.setLocalScale(scale, scale, scale); // Leaf shapeish
 
             // Tropical colors (Green, Pink, Gold)
             const colors = [
@@ -163,8 +179,25 @@ export class ABCMergeScene extends Scene {
             const color = colors[Math.floor(Math.random() * colors.length)];
             pMat.emissive = color;
             pMat.diffuse = color;
-            pMat.opacity = 0.8;
-            pMat.blendType = pc.BLEND_ADDITIVE;
+            pMat.opacity = 1; // Alpha test?
+            pMat.blendType = pc.BLEND_NORMAL;
+
+            // Try to apply texture if we can get it reference (async issue in loop)
+            // Ideally we load texture once outside.
+            const app = pc.Application.getApplication();
+            const texAsset = app?.assets.find('leaf-texture');
+            if (texAsset && texAsset.resource) {
+                pMat.diffuseMap = texAsset.resource as pc.Texture;
+                pMat.emissiveMap = texAsset.resource as pc.Texture;
+                pMat.opacityMap = texAsset.resource as pc.Texture; // Use same for shape
+                pMat.alphaTest = 0.5; // Cutout
+                pMat.useLighting = false;
+                pMat.emissiveIntensity = 0.5;
+            } else {
+                pMat.blendType = pc.BLEND_ADDITIVE;
+                pMat.opacity = 0.6;
+            }
+
             pMat.update();
 
             p.render!.material = pMat; // Assign unique material
@@ -187,24 +220,46 @@ export class ABCMergeScene extends Scene {
 
         // BAMBOO Material
         const bambooMat = new pc.StandardMaterial();
-        bambooMat.diffuse = new pc.Color(0.4, 0.6, 0.2); // Greenish bamboo
+        bambooMat.diffuse = new pc.Color(0.4, 0.6, 0.2); // Fallback Green
         bambooMat.gloss = 0.4;
         bambooMat.metalness = 0.1;
         bambooMat.useMetalness = true;
         bambooMat.update();
 
-        // BAMBOO JOINTS (Darker rings) - Optional visual detail could be added here
-
         // WATER Material
         const waterMat = new pc.StandardMaterial();
         waterMat.diffuse = new pc.Color(0.2, 0.6, 0.8);
-        waterMat.opacity = 0.6;
+        waterMat.opacity = 0.75; // Less transparent to see texture
         waterMat.blendType = pc.BLEND_NORMAL;
-        waterMat.gloss = 0.9;
+        waterMat.gloss = 0.95;
         waterMat.metalness = 0.6;
         waterMat.useMetalness = true;
         waterMat.emissive = new pc.Color(0.1, 0.3, 0.4);
         waterMat.update();
+
+        // Load Textures Async
+        const assetLoader = AssetLoader.getInstance();
+
+        // Bamboo Texture
+        assetLoader.loadTexture('/textures/bamboo.png', 'bamboo-texture').then((texture: pc.Texture) => {
+            bambooMat.diffuseMap = texture;
+            bambooMat.diffuse = new pc.Color(1, 1, 1); // White to show texture colors
+
+            // Tiling for bamboo (vertical repeat)
+            bambooMat.diffuseMapTiling = new pc.Vec2(3, 8);
+            bambooMat.update();
+        }).catch((err: any) => console.error("Bamboo texture load error", err));
+
+        // Water Texture
+        assetLoader.loadTexture('/textures/water.png', 'water-texture').then((texture: pc.Texture) => {
+            waterMat.diffuseMap = texture;
+            // waterMat.opacityMap = texture; // Maybe?
+            waterMat.diffuse = new pc.Color(0.5, 0.8, 1); // Tint
+
+            // Tiling for water
+            waterMat.diffuseMapTiling = new pc.Vec2(4, 2);
+            waterMat.update();
+        }).catch((err: any) => console.error("Water texture load error", err));
 
         // Left Bamboo
         const leftWall = new pc.Entity('left-bamboo');
