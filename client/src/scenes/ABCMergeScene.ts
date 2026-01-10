@@ -372,7 +372,7 @@ export class ABCMergeScene extends Scene {
         this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.2, scale * 0.4);
     }
 
-    private buildBee(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+    private buildBee(entity: pc.Entity, mat: pc.StandardMaterial, _mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
         // Create black stripe material
         const blackMat = new pc.StandardMaterial();
         blackMat.diffuse = new pc.Color(0.1, 0.1, 0.1);
@@ -422,7 +422,7 @@ export class ABCMergeScene extends Scene {
         this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.2, scale * 0.5);
     }
 
-    private buildCat(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+    private buildCat(entity: pc.Entity, mat: pc.StandardMaterial, _mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
         // Body
         const body = new pc.Entity('body');
         body.addComponent('render', { type: 'sphere', material: mat });
@@ -663,7 +663,7 @@ export class ABCMergeScene extends Scene {
         this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.38, scale * 0.4);
     }
 
-    private buildPenguin(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+    private buildPenguin(entity: pc.Entity, mat: pc.StandardMaterial, _mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
         // Body (black)
         const body = new pc.Entity('body');
         body.addComponent('render', { type: 'sphere', material: mat });
@@ -704,7 +704,7 @@ export class ABCMergeScene extends Scene {
         this.addEyes(entity, eyeMat, pupilMat, scale * 0.08, scale * 0.28, scale * 0.28);
     }
 
-    private buildRabbit(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+    private buildRabbit(entity: pc.Entity, mat: pc.StandardMaterial, _mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
         // Body
         const body = new pc.Entity('body');
         body.addComponent('render', { type: 'sphere', material: mat });
@@ -752,7 +752,7 @@ export class ABCMergeScene extends Scene {
         this.addEyes(entity, eyeMat, pupilMat, scale * 0.1, scale * 0.42, scale * 0.38);
     }
 
-    private buildZebra(entity: pc.Entity, mat: pc.StandardMaterial, mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
+    private buildZebra(entity: pc.Entity, mat: pc.StandardMaterial, _mat2: pc.StandardMaterial, eyeMat: pc.StandardMaterial, pupilMat: pc.StandardMaterial, scale: number): void {
         // Body (white)
         const body = new pc.Entity('body');
         body.addComponent('render', { type: 'sphere', material: mat });
